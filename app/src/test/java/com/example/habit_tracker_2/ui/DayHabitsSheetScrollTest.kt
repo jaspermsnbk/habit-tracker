@@ -16,6 +16,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.habit_tracker_2.data.HabitDatabase
 import com.example.habit_tracker_2.data.HabitRepository
 import com.example.habit_tracker_2.data.inMemoryDatabase
+import com.example.habit_tracker_2.data.testPreferences
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -42,7 +43,7 @@ class DayHabitsSheetScrollTest {
             repository.habits.first().forEach { repository.toggleToday(it.id) }
         }
 
-        val viewModel = HabitViewModel(repository)
+        val viewModel = HabitViewModel(repository, testPreferences())
         composeRule.setContent { CalendarScreen(viewModel) }
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule.onAllNodesWithText("$HABIT_COUNT check-ins this month").fetchSemanticsNodes().isNotEmpty()

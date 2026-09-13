@@ -6,19 +6,26 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.habit_tracker_2.HabitApplication
+import com.example.habit_tracker_2.data.AppPreferences
 import com.example.habit_tracker_2.data.HabitRepository
 import com.example.habit_tracker_2.data.HabitUi
 import com.example.habit_tracker_2.data.LabelUi
+import com.example.habit_tracker_2.data.PreferencesStore
+import com.example.habit_tracker_2.data.ThemeMode
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 
 /**
  * Exposes habit state to the UI as a [StateFlow] and forwards user actions to the
  * repository. The UI is a pure function of [habits] and [labels]; it never touches the data layer directly.
  */
-class HabitViewModel(private val repository: HabitRepository) : ViewModel() {
+class HabitViewModel(
+    private val repository: HabitRepository,
+    private val preferencesStore: PreferencesStore,
+) : ViewModel() {
 
     val habits: StateFlow<List<HabitUi>> =
         repository.habits.stateIn(
@@ -33,6 +40,17 @@ class HabitViewModel(private val repository: HabitRepository) : ViewModel() {
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyList(),
         )
+
+    /** Settings choices. Already current when first read, so screens open with the saved values. */
+    val preferences: StateFlow<AppPreferences> = preferencesStore.preferences
+
+    fun setTheme(theme: ThemeMode) = preferencesStore.setTheme(theme)
+
+    fun setDynamicColor(enabled: Boolean) = preferencesStore.setDynamicColor(enabled)
+
+    fun setFirstDayOfWeek(day: DayOfWeek?) = preferencesStore.setFirstDayOfWeek(day)
+
+    internal fun setTrendsRange(range: TrendRange) = preferencesStore.setTrendsRange(range.name)
 
     fun addHabit(name: String, color: String, labelId: String? = null) = viewModelScope.launch {
         repository.addHabit(name, color, labelId)
@@ -63,7 +81,7 @@ class HabitViewModel(private val repository: HabitRepository) : ViewModel() {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as HabitApplication
-                HabitViewModel(app.repository)
+                HabitViewModel(app.repository, app.preferencesStore)
             }
         }
     }

@@ -14,6 +14,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.habit_tracker_2.data.HabitDatabase
 import com.example.habit_tracker_2.data.HabitRepository
 import com.example.habit_tracker_2.data.inMemoryDatabase
+import com.example.habit_tracker_2.data.testPreferences
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -33,7 +34,7 @@ class SettingsScreenTest {
     @Before
     fun setUp() {
         db = inMemoryDatabase()
-        val viewModel = HabitViewModel(HabitRepository(db.habitDao()))
+        val viewModel = HabitViewModel(HabitRepository(db.habitDao()), testPreferences())
         composeRule.setContent { SettingsScreen(viewModel, onBack = { backPresses++ }) }
     }
 

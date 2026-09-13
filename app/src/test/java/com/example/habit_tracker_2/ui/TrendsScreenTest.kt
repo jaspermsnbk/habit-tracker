@@ -17,6 +17,7 @@ import com.example.habit_tracker_2.data.HabitDatabase
 import com.example.habit_tracker_2.data.HabitEntryEntity
 import com.example.habit_tracker_2.data.HabitRepository
 import com.example.habit_tracker_2.data.inMemoryDatabase
+import com.example.habit_tracker_2.data.testPreferences
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -62,7 +63,7 @@ class TrendsScreenTest {
             repository.toggleToday(habits.first { it.name == "Run" }.id)
         }
 
-        val viewModel = HabitViewModel(repository)
+        val viewModel = HabitViewModel(repository, testPreferences())
         composeRule.setContent { TrendsScreen(viewModel) }
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule.onAllNodesWithText("Run").fetchSemanticsNodes().isNotEmpty()

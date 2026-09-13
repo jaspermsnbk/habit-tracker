@@ -8,3 +8,6 @@ fun inMemoryDatabase(): HabitDatabase =
     Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), HabitDatabase::class.java)
         .allowMainThreadQueries()
         .build()
+
+/** Preferences for a test; Robolectric gives each test fresh shared preferences. */
+fun testPreferences(): PreferencesStore = PreferencesStore(ApplicationProvider.getApplicationContext())

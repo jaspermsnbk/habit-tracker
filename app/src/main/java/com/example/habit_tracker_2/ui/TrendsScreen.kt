@@ -55,11 +55,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.habit_tracker_2.data.weekStart
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
-import java.time.temporal.WeekFields
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -79,7 +79,8 @@ fun TrendsScreen(
 ) {
     val habits by viewModel.habits.collectAsState()
     val labels by viewModel.labels.collectAsState()
-    var range by rememberSaveable { mutableStateOf(TrendRange.Month) }
+    val preferences by viewModel.preferences.collectAsState()
+    var range by rememberSaveable { mutableStateOf(trendRangeNamed(preferences.trendsRange)) }
     var selectedLabelId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedHabitId by rememberSaveable { mutableStateOf<String?>(null) }
     // Selections fall back to "All" if the label or habit is deleted. Everything below the
@@ -161,7 +162,7 @@ fun TrendsScreen(
                 // A week has one of each weekday, which the chart above already shows.
                 if (range != TrendRange.Week && trends.weekdayRates.isNotEmpty()) {
                     SectionTitle("By weekday")
-                    WeekdayPattern(trends.weekdayRates, accent)
+                    WeekdayPattern(trends.weekdayRates, accent, preferences.weekStart())
                 }
 
                 if (selected == null && labelHabits.size > 1) {
@@ -397,9 +398,8 @@ private fun AxisLabel(text: String) {
 
 /** A mini bar per weekday showing how often habits get done on that day. */
 @Composable
-private fun WeekdayPattern(rates: Map<DayOfWeek, Float>, color: Color) {
+private fun WeekdayPattern(rates: Map<DayOfWeek, Float>, color: Color, firstDayOfWeek: DayOfWeek) {
     val locale = Locale.getDefault()
-    val firstDayOfWeek = WeekFields.of(locale).firstDayOfWeek
     val best = rates.maxByOrNull { it.value }?.takeIf { it.value > 0f }?.key
 
     if (best != null) {
@@ -507,6 +507,10 @@ internal fun bucketLabel(bucket: TrendBucket, today: LocalDate): String = when {
     bucket.end == today -> "Last 7 days"
     else -> "${bucket.start.format(SHORT_DAY_FORMAT)} – ${bucket.end.format(SHORT_DAY_FORMAT)}"
 }
+
+/** The range saved as [name] in preferences, or 30 days if none (or an unknown one) is saved. */
+internal fun trendRangeNamed(name: String?): TrendRange =
+    TrendRange.entries.find { it.name == name } ?: TrendRange.Month
 
 /** Which of [count] equal-width bars spans horizontal position [x] of a [width]-wide chart. */
 internal fun barIndexAt(x: Float, width: Float, count: Int): Int =

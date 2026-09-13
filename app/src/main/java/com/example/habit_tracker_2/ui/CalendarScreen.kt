@@ -51,12 +51,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.habit_tracker_2.data.HabitUi
 import com.example.habit_tracker_2.data.LabelUi
+import com.example.habit_tracker_2.data.weekStart
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
-import java.time.temporal.WeekFields
 import java.util.Locale
 
 internal val MONTH_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM yyyy")
@@ -77,6 +77,7 @@ fun CalendarScreen(
 ) {
     val habits by viewModel.habits.collectAsState()
     val labels by viewModel.labels.collectAsState()
+    val preferences by viewModel.preferences.collectAsState()
     var month by rememberSaveable { mutableStateOf(YearMonth.now()) }
     var selectedLabelId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedHabitId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -139,6 +140,7 @@ fun CalendarScreen(
                     today = today,
                     habits = labelHabits,
                     selected = selected,
+                    firstDayOfWeek = preferences.weekStart(),
                     // Day details list every habit, so they're only offered under "All habits".
                     onDayClick = if (selected == null) { day -> openDay = day } else null,
                 )
@@ -210,10 +212,10 @@ private fun MonthGrid(
     today: LocalDate,
     habits: List<HabitUi>,
     selected: HabitUi?,
+    firstDayOfWeek: DayOfWeek,
     onDayClick: ((LocalDate) -> Unit)?,
 ) {
     val locale = Locale.getDefault()
-    val firstDayOfWeek = WeekFields.of(locale).firstDayOfWeek
 
     Column {
         Row {
