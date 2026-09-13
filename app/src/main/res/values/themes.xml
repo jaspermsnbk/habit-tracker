@@ -1,0 +1,8 @@
+<resources>
+    <!--
+      Window theme shown before Compose draws. The real UI theming lives in
+      ui/theme/Theme.kt, so this uses a framework parent and needs no
+      Material Components (View) library.
+    -->
+    <style name="Theme.Habittracker2" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
