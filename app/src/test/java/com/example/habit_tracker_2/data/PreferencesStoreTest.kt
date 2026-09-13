@@ -8,6 +8,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.time.DayOfWeek
+import java.time.LocalTime
 import java.util.Locale
 
 @RunWith(AndroidJUnit4::class)
@@ -62,6 +63,21 @@ class PreferencesStoreTest {
         assertNull(store.preferences.value.firstDayOfWeek)
         assertEquals(DayOfWeek.SUNDAY, store.preferences.value.weekStart(Locale.US))
         assertEquals(DayOfWeek.MONDAY, store.preferences.value.weekStart(Locale.UK))
+    }
+
+    @Test
+    fun reminder_isOffAt8pmByDefault_andPersists() {
+        assertEquals(false, PreferencesStore(context).preferences.value.reminderEnabled)
+        assertEquals(LocalTime.of(20, 0), PreferencesStore(context).preferences.value.reminderTime)
+
+        PreferencesStore(context).apply {
+            setReminderEnabled(true)
+            setReminderTime(LocalTime.of(7, 45))
+        }
+
+        val preferences = PreferencesStore(context).preferences.value
+        assertEquals(true, preferences.reminderEnabled)
+        assertEquals(LocalTime.of(7, 45), preferences.reminderTime)
     }
 
     @Test

@@ -1,0 +1,342 @@
+<title>Habit Tracker Settings Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,75..125,300..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    --ground: #faf9fc;
+    --surface: #ffffff;
+    --ink: #1d1b22;
+    --muted: #5f5b6b;
+    --rule: #e4e1ea;
+    --accent: #6650a4;
+    --accent-soft: #eee8f8;
+    --on-accent: #ffffff;
+    --phone: #f3f0f7;
+    --code-bg: #f1eef5;
+    --warn: #8a5a00;
+    --warn-soft: #fbf1dc;
+    --sans: "Roboto Flex", Roboto, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #141218;
+      --surface: #1d1b22;
+      --ink: #e7e1ee;
+      --muted: #a59fb2;
+      --rule: #2f2b37;
+      --accent: #d0bcff;
+      --accent-soft: #2c2540;
+      --on-accent: #21005d;
+      --phone: #211e27;
+      --code-bg: #221f29;
+      --warn: #f0c16a;
+      --warn-soft: #33290f;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #141218;
+    --surface: #1d1b22;
+    --ink: #e7e1ee;
+    --muted: #a59fb2;
+    --rule: #2f2b37;
+    --accent: #d0bcff;
+    --accent-soft: #2c2540;
+    --on-accent: #21005d;
+    --phone: #211e27;
+    --code-bg: #221f29;
+    --warn: #f0c16a;
+    --warn-soft: #33290f;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    padding: 0 20px;
+  }
+  .page { max-width: 920px; margin: 0 auto; padding-block: 56px 96px; display: grid; gap: 56px; }
+
+  h1, h2, h3 { text-wrap: balance; margin: 0; line-height: 1.2; }
+  h1 { font-size: clamp(2rem, 5vw, 2.75rem); font-weight: 720; font-stretch: 112%; letter-spacing: -0.01em; }
+  h2 { font-size: 1.5rem; font-weight: 680; font-stretch: 108%; }
+  h3 { font-size: 1.0625rem; font-weight: 650; }
+  p { margin: 0; max-width: 66ch; }
+  a { color: var(--accent); }
+  code, .path { font-family: var(--mono); font-size: 0.84em; }
+  code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; }
+  .eyebrow { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .muted { color: var(--muted); }
+
+  header { display: grid; gap: 16px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 0.875rem; color: var(--muted); }
+  .meta span b { color: var(--ink); font-weight: 600; }
+  .lede { font-size: 1.125rem; color: var(--ink); }
+
+  /* Phase overview */
+  .phases { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border-top: 1px solid var(--rule); }
+  .phases li { display: grid; grid-template-columns: 3rem 1fr auto; gap: 16px; align-items: baseline; padding: 14px 0; border-bottom: 1px solid var(--rule); }
+  .phases .n { font-family: var(--mono); font-size: 0.875rem; color: var(--accent); font-weight: 600; }
+  .phases .t { font-weight: 600; }
+  .phases .d { display: block; font-size: 0.9375rem; color: var(--muted); font-weight: 400; }
+  .phases .size { font-size: 0.8125rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+  section { display: grid; gap: 20px; }
+  .section-head { display: grid; gap: 6px; }
+  .two-col { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 40px; align-items: start; }
+  @media (max-width: 760px) { .two-col { grid-template-columns: 1fr; } }
+  .stack { display: grid; gap: 16px; }
+
+  ul.steps { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; max-width: 66ch; }
+  ul.steps li::marker { color: var(--accent); }
+
+  .table-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9375rem; }
+  th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--rule); }
+  tr:last-child td { border-bottom: 0; }
+  th { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--ground); }
+  td.path { white-space: nowrap; color: var(--ink); }
+  .tag { display: inline-block; font-size: 0.6875rem; font-weight: 650; letter-spacing: 0.05em; text-transform: uppercase; padding: 1px 6px; border-radius: 4px; margin-right: 6px; vertical-align: 1px; }
+  .tag.new { background: var(--accent-soft); color: var(--accent); }
+  .tag.edit { background: var(--code-bg); color: var(--muted); }
+
+  pre { margin: 0; background: var(--code-bg); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-family: var(--mono); font-size: 0.8125rem; line-height: 1.55; }
+
+  .note { background: var(--warn-soft); color: var(--ink); border-radius: 8px; padding: 12px 16px; font-size: 0.9375rem; max-width: 66ch; }
+  .note b { color: var(--warn); }
+
+  /* Phone mocks */
+  .phone { background: var(--phone); border: 1px solid var(--rule); border-radius: 28px; padding: 14px 0 18px; font-size: 0.8125rem; line-height: 1.35; overflow: hidden; }
+  .phone-cap { font-size: 0.75rem; color: var(--muted); text-align: center; margin-top: 8px; }
+  .bar { display: flex; align-items: center; gap: 10px; padding: 6px 14px 12px; }
+  .bar .title { flex: 1; font-size: 1.125rem; font-weight: 500; }
+  .icon { width: 22px; height: 22px; flex: none; color: var(--ink); }
+  .icon-btn { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; }
+  .icon-btn.hot { outline: 2px solid var(--accent); outline-offset: 1px; background: var(--accent-soft); }
+  .grp { padding: 10px 16px 4px; font-size: 0.6875rem; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+  .row { display: flex; align-items: center; gap: 12px; padding: 9px 16px; }
+  .row .main { flex: 1; min-width: 0; }
+  .row .sub { display: block; color: var(--muted); font-size: 0.75rem; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; font-weight: 650; }
+  .btn-off { border: 1px solid var(--rule); border-radius: 999px; padding: 3px 10px; color: var(--muted); font-size: 0.75rem; white-space: nowrap; }
+  .switch { width: 34px; height: 20px; border-radius: 999px; background: var(--accent); position: relative; flex: none; }
+  .switch::after { content: ""; position: absolute; right: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--on-accent); }
+  .divider { height: 1px; background: var(--rule); margin: 6px 16px; }
+  .val { color: var(--muted); white-space: nowrap; }
+  .add { color: var(--accent); font-weight: 600; }
+  .mini-list { padding: 4px 14px; display: grid; gap: 8px; }
+  .mini-card { background: var(--surface); border-radius: 12px; padding: 12px; display: flex; gap: 10px; align-items: center; }
+  .dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--accent); flex: none; }
+  .ghost { height: 8px; border-radius: 4px; background: var(--rule); }
+
+  .questions { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+  .questions li { display: grid; gap: 2px; padding-left: 16px; border-left: 2px solid var(--rule); max-width: 70ch; }
+  .questions b { font-weight: 600; }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<div class="page">
+
+  <header>
+    <div class="eyebrow">Implementation plan · habit_tracker_2</div>
+    <h1>Settings page &amp; account button</h1>
+    <p class="lede">Add an account icon to the top-right of every tab's app bar. It opens a full-screen Settings page with Account, Labels, Preferences and About. The page is a detour off the tabs, not a fourth tab.</p>
+    <div class="meta">
+      <span>Base <b>master @ 5654585</b></span>
+      <span>Stack <b>Compose + Material 3, Room v2</b></span>
+      <span>New dependencies <b>none</b></span>
+      <span>Schema change <b>none</b></span>
+    </div>
+  </header>
+
+  <section>
+    <div class="section-head">
+      <h2>Phases</h2>
+      <p class="muted">Each phase is one commit you can ship on its own. Later phases add sections to the page the first one creates.</p>
+    </div>
+    <ol class="phases">
+      <li><span class="n">1</span><span class="t">Account button and empty Settings page<span class="d">Shared top bar, open/close from <code>HabitApp</code>, back handling, tabs keep their state</span></span><span class="size">~½ day</span></li>
+      <li><span class="n">2</span><span class="t">Account section<span class="d">Guest status, what that means for your data, sign-in placeholder</span></span><span class="size">~2 hrs</span></li>
+      <li><span class="n">3</span><span class="t">Manage labels<span class="d">Rename and delete labels (today they can only be added); habit counts</span></span><span class="size">~1 day</span></li>
+      <li><span class="n">4</span><span class="t">Preferences<span class="d">Theme, dynamic color, first day of week, default Trends range</span></span><span class="size">~1 day</span></li>
+      <li><span class="n">5</span><span class="t">About<span class="d">App version</span></span><span class="size">~1 hr</span></li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div class="eyebrow">Phase 1</div>
+      <h2>Account button and empty Settings page</h2>
+    </div>
+    <div class="two-col">
+      <div class="stack">
+        <p>All three screens build their own <code>TopAppBar</code> (<span class="path">HabitListScreen.kt:86</span>, <span class="path">CalendarScreen.kt:91</span>, <span class="path">TrendsScreen.kt:96</span>). Replace those with one shared bar so the icon is identical and sits in the same place on every tab.</p>
+        <pre>@Composable
+fun HabitTopBar(title: String, onOpenSettings: () -&gt; Unit) {
+    TopAppBar(
+        title = { Text(title) },
+        actions = {
+            IconButton(onClick = onOpenSettings) {
+                Icon(Icons.Outlined.AccountCircle,
+                     contentDescription = "Settings")
+            }
+        },
+    )
+}</pre>
+        <ul class="steps">
+          <li>Each screen gets an <code>onOpenSettings: () -&gt; Unit = {}</code> parameter. The default keeps the existing screen tests compiling unchanged.</li>
+          <li><code>HabitApp</code> holds <code>var showSettings by rememberSaveable { mutableStateOf(false) }</code>. When it's on, draw <code>SettingsScreen(onBack)</code> in place of the whole tab <code>Scaffold</code>, with no bottom bar. When it's off, draw the tabs as today.</li>
+          <li><code>BackHandler(enabled = showSettings) { showSettings = false }</code> so system back closes Settings instead of leaving the app. The Settings top bar has a back arrow that does the same.</li>
+          <li>Wrap the tab content in <code>rememberSaveableStateHolder()</code>, keyed by tab name. Today, switching tabs throws away each screen's filters, month and range. Opening Settings would do the same to the current tab, and this fixes both.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="phone" aria-label="Mock of the Habits tab with the account button in the top bar">
+          <div class="bar">
+            <span class="title">Habits</span>
+            <span class="icon-btn hot">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><circle cx="12" cy="10" r="3.2"/><path d="M6.2 18.3c1.4-2.1 3.4-3.2 5.8-3.2s4.4 1.1 5.8 3.2"/></svg>
+            </span>
+          </div>
+          <div class="mini-list">
+            <div class="mini-card"><span class="dot"></span><div style="flex:1;display:grid;gap:6px"><div class="ghost" style="width:55%"></div><div class="ghost" style="width:80%"></div></div></div>
+            <div class="mini-card"><span class="dot"></span><div style="flex:1;display:grid;gap:6px"><div class="ghost" style="width:40%"></div><div class="ghost" style="width:80%"></div></div></div>
+          </div>
+        </div>
+        <div class="phone-cap">Same button on Habits, Calendar and Trends</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>File</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr><td class="path"><span class="tag new">new</span>ui/HabitTopBar.kt</td><td>Shared top bar with the account icon</td></tr>
+          <tr><td class="path"><span class="tag new">new</span>ui/SettingsScreen.kt</td><td>Scaffold with back arrow and title "Settings"; sections get filled in by later phases</td></tr>
+          <tr><td class="path"><span class="tag edit">edit</span>ui/HabitApp.kt</td><td><code>showSettings</code> state, <code>BackHandler</code>, saveable state holder per tab</td></tr>
+          <tr><td class="path"><span class="tag edit">edit</span>ui/HabitListScreen.kt, CalendarScreen.kt, TrendsScreen.kt</td><td>Use <code>HabitTopBar</code>; accept <code>onOpenSettings</code></td></tr>
+          <tr><td class="path"><span class="tag edit">edit</span>test/…/MainActivityTest.kt</td><td>Account button opens Settings from each tab; back returns to the same tab with its filter still selected</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div class="eyebrow">Phases 2–5</div>
+      <h2>What the Settings page holds</h2>
+    </div>
+    <div class="two-col">
+      <div class="stack">
+        <h3>Account (phase 2)</h3>
+        <p><code>SessionStore</code> only knows "guest" today. Accounts are planned for Phase 4 of the app. For now, show where the data lives and hold a place for sign-in.</p>
+        <ul class="steps">
+          <li>Row: "Guest", sub-line "Your habits are saved on this phone only."</li>
+          <li>"Sign in" button, disabled, with "Coming soon". Hide it entirely if you'd rather not show unfinished features (see open questions).</li>
+          <li>Leave out Sign out for now. For a guest it would just return to the landing screen with the data still there, which isn't what people expect "sign out" to mean.</li>
+        </ul>
+
+        <h3>Labels (phase 3)</h3>
+        <p>Labels can be added from the Habits speed dial but never renamed or removed. No schema change is needed: <code>habits.labelId</code> already has <code>onDelete = SET_NULL</code>.</p>
+        <ul class="steps">
+          <li>List each label with its habit count ("Fitness · 3 habits"). Tap a row to rename it; a delete icon asks for confirmation first: "Delete Fitness? Its 3 habits stay, just without a label."</li>
+          <li>"New label" row at the end reuses <code>AddLabelDialog</code>. Generalize it into <code>LabelNameDialog(initialName, title, confirmText)</code> so rename gets the same blank/duplicate checks.</li>
+          <li>DAO: <code>updateLabelName(id, name)</code>, <code>deleteLabel(id)</code>. Repository: <code>renameLabel(id, name): Boolean</code>, which skips the label itself in the duplicate check so changing only the capitalization works, plus <code>deleteLabel(id)</code>. Add matching <code>HabitViewModel</code> methods.</li>
+          <li>Screens already fall back to "All labels" when the selected label disappears, so no changes are needed there.</li>
+        </ul>
+
+        <h3>Preferences (phase 4)</h3>
+        <p>Store preferences in a new <code>PreferencesStore</code>, SharedPreferences-backed like <code>SessionStore</code> so no DataStore dependency is needed. It exposes a <code>StateFlow&lt;AppPreferences&gt;</code> and lives on <code>HabitApplication</code>.</p>
+        <ul class="steps">
+          <li><b>Theme</b>: System / Light / Dark. <b>Dynamic color</b>: on/off. <code>MainActivity</code> collects the flow and passes both into <code>HabitTrackerTheme(darkTheme, dynamicColor)</code>, which already takes those parameters.</li>
+          <li><b>Week starts on</b>: System default / Sunday / Monday / Saturday. Calendar and Trends currently call <code>WeekFields.of(locale).firstDayOfWeek</code> (<span class="path">TrendsScreen.kt:399</span> and the month grid). Provide the resolved day through a <code>LocalFirstDayOfWeek</code> CompositionLocal set in <code>HabitApp</code>, so neither screen needs a new parameter.</li>
+          <li><b>Trends opens on</b>: 7D / 30D / 3M / 1Y, used as the first value of the range in <code>TrendsScreen</code>.</li>
+          <li>Show choices as single-choice dialogs with radio buttons, each row showing its current value, the standard Android settings pattern.</li>
+        </ul>
+
+        <h3>About (phase 5)</h3>
+        <ul class="steps">
+          <li>"Version 1.0". Read it from <code>packageManager.getPackageInfo(packageName, 0).versionName</code>, since <code>buildConfig</code> isn't enabled in <span class="path">app/build.gradle.kts</span>.</li>
+        </ul>
+      </div>
+
+      <div>
+        <div class="phone" aria-label="Mock of the finished Settings page">
+          <div class="bar">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+            <span class="title">Settings</span>
+          </div>
+          <div class="grp">Account</div>
+          <div class="row"><span class="avatar">G</span><span class="main">Guest<span class="sub">Saved on this phone only</span></span><span class="btn-off">Sign in · soon</span></div>
+          <div class="divider"></div>
+          <div class="grp">Labels</div>
+          <div class="row"><span class="main">Fitness<span class="sub">3 habits</span></span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg></div>
+          <div class="row"><span class="main">Learning<span class="sub">1 habit</span></span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg></div>
+          <div class="row"><span class="main add">+ New label</span></div>
+          <div class="divider"></div>
+          <div class="grp">Preferences</div>
+          <div class="row"><span class="main">Theme</span><span class="val">System</span></div>
+          <div class="row"><span class="main">Dynamic color<span class="sub">Match your wallpaper</span></span><span class="switch" aria-hidden="true"></span></div>
+          <div class="row"><span class="main">Week starts on</span><span class="val">System (Sun)</span></div>
+          <div class="row"><span class="main">Trends opens on</span><span class="val">30D</span></div>
+          <div class="divider"></div>
+          <div class="grp">About</div>
+          <div class="row"><span class="main">Version</span><span class="val">1.0</span></div>
+        </div>
+        <div class="phone-cap">Example labels; scrolls on small phones</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>File</th><th>Phase</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr><td class="path"><span class="tag edit">edit</span>ui/SettingsScreen.kt</td><td>2–5</td><td>One section composable per phase: <code>AccountSection</code>, <code>LabelsSection</code>, <code>PreferencesSection</code>, <code>AboutSection</code></td></tr>
+          <tr><td class="path"><span class="tag edit">edit</span>data/HabitDao.kt</td><td>3</td><td><code>updateLabelName</code>, <code>deleteLabel</code></td></tr>
+          <tr><td class="path"><span class="tag edit">edit</span>data/HabitRepository.kt</td><td>3</td><td><code>renameLabel</code>, <code>deleteLabel</code>; habit count per label in <code>LabelUi</code></td></tr>
+          <tr><td class="path"><span class="tag edit">edit</span>ui/HabitViewModel.kt</td><td>3</td><td>Forward rename/delete</td></tr>
+          <tr><td class="path"><span class="tag edit">edit</span>ui/AddLabelDialog.kt</td><td>3</td><td>Generalize to <code>LabelNameDialog</code> for add and rename</td></tr>
+          <tr><td class="path"><span class="tag new">new</span>data/PreferencesStore.kt</td><td>4</td><td>Theme, dynamic color, week start, Trends range; <code>StateFlow</code></td></tr>
+          <tr><td class="path"><span class="tag edit">edit</span>HabitApplication.kt, MainActivity.kt</td><td>4</td><td>Create the store; feed theme settings into <code>HabitTrackerTheme</code></td></tr>
+          <tr><td class="path"><span class="tag edit">edit</span>ui/HabitApp.kt, CalendarScreen.kt, TrendsScreen.kt</td><td>4</td><td><code>LocalFirstDayOfWeek</code>; Trends first range from preferences</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Tests</h2>
+      <p class="muted">Robolectric and Compose UI tests, like the existing suite. One file per behavior area.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Test</th><th>Covers</th></tr></thead>
+        <tbody>
+          <tr><td class="path">MainActivityTest</td><td>Account button opens Settings from each tab; back arrow and system back return to that tab; tab filters survive the trip</td></tr>
+          <tr><td class="path">SettingsLabelsTest</td><td>Rename shows everywhere; duplicate name blocked but changing capitalization allowed; delete confirms, and habits stay with no label</td></tr>
+          <tr><td class="path">HabitRepositoryTest</td><td><code>renameLabel</code> / <code>deleteLabel</code>, and that <code>SET_NULL</code> clears <code>labelId</code></td></tr>
+          <tr><td class="path">PreferencesStoreTest</td><td>Defaults, persistence across instances (like <code>SessionStoreTest</code>)</td></tr>
+          <tr><td class="path">SettingsPreferencesTest</td><td>Monday start moves the Calendar's first column and Trends' weekday order; Trends opens on the chosen range</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Open questions</h2>
+    </div>
+    <ul class="questions">
+      <li><b>Show a disabled "Sign in" before accounts exist?</b><span class="muted">It tells guests their data is local-only and that sign-in is coming. Hiding it avoids showing an unfinished feature. The plan shows it.</span></li>
+      <li><b>Offer "Delete all data" for guests?</b><span class="muted">It's the only way to start fresh without reinstalling. It's destructive, so it needs a typed confirmation. Left out of this plan.</span></li>
+      <li><b>Is "Trends opens on" worth a setting?</b><span class="muted">Remembering the last range used is an alternative with no settings row. Cut it if phase 4 feels crowded.</span></li>
+    </ul>
+    <p class="note"><b>Before starting:</b> the label filter for Trends is still uncommitted on <code>master</code> (<span class="path">TrendsScreen.kt</span>, <span class="path">TrendsLabelFilterTest.kt</span>). Commit it first so phase 1's top-bar edit to that file doesn't get mixed in.</p>
+  </section>
+
+</div>

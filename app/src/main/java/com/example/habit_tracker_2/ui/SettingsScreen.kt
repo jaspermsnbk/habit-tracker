@@ -1,6 +1,12 @@
 package com.example.habit_tracker_2.ui
 
+import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.provider.Settings
+import android.text.format.DateFormat
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -26,6 +32,7 @@ import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,6 +40,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
@@ -40,7 +48,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -56,12 +66,16 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.example.habit_tracker_2.data.AppPreferences
 import com.example.habit_tracker_2.data.HabitUi
 import com.example.habit_tracker_2.data.LabelUi
 import com.example.habit_tracker_2.data.ThemeMode
 import com.example.habit_tracker_2.data.weekStart
+import com.example.habit_tracker_2.notifications.ReminderNotifier
 import java.time.DayOfWeek
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -114,6 +128,14 @@ fun SettingsScreen(viewModel: HabitViewModel, onBack: () -> Unit, modifier: Modi
                     onDynamicColorChange = viewModel::setDynamicColor,
                     onFirstDayOfWeekChange = viewModel::setFirstDayOfWeek,
                     onTrendsRangeChange = viewModel::setTrendsRange,
+                )
+            }
+            HorizontalDivider()
+            SettingsSection("Notifications") {
+                NotificationsSection(
+                    preferences = preferences,
+                    onReminderEnabledChange = viewModel::setReminderEnabled,
+                    onReminderTimeChange = viewModel::setReminderTime,
                 )
             }
             HorizontalDivider()
@@ -383,6 +405,138 @@ private fun <T> ChoiceDialog(
         },
     )
 }
+
+/**
+ * The daily reminder: on or off, and when. Turning it on asks for notification permission
+ * first; if notifications are blocked, a row says so and links to the system settings.
+ */
+@Composable
+private fun NotificationsSection(
+    preferences: AppPreferences,
+    onReminderEnabledChange: (Boolean) -> Unit,
+    onReminderTimeChange: (LocalTime) -> Unit,
+) {
+    val context = LocalContext.current
+    var canNotify by remember { mutableStateOf(ReminderNotifier.canNotify(context)) }
+    // Set when turning the reminder on was refused, so the fix shows even though it stays off.
+    var permissionRefused by rememberSaveable { mutableStateOf(false) }
+    var choosingTime by rememberSaveable { mutableStateOf(false) }
+
+    // Notifications can be allowed or blocked in system settings while the app is in the background.
+    LifecycleResumeEffect(Unit) {
+        canNotify = ReminderNotifier.canNotify(context)
+        onPauseOrDispose {}
+    }
+
+    val requestPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        canNotify = ReminderNotifier.canNotify(context)
+        if (canNotify) onReminderEnabledChange(true) else permissionRefused = true
+    }
+
+    val is24Hour = DateFormat.is24HourFormat(context)
+    val timeText = preferences.reminderTime.format(reminderTimeFormatter(is24Hour))
+
+    ListItem(
+        headlineContent = { Text("Daily reminder") },
+        supportingContent = {
+            Text(
+                if (preferences.reminderEnabled) {
+                    "Every day at $timeText, if any habits are left"
+                } else {
+                    "A nudge about habits you haven't done yet"
+                }
+            )
+        },
+        trailingContent = { Switch(checked = preferences.reminderEnabled, onCheckedChange = null) },
+        modifier = Modifier.toggleable(value = preferences.reminderEnabled, role = Role.Switch) { enable ->
+            canNotify = ReminderNotifier.canNotify(context)
+            when {
+                !enable -> onReminderEnabledChange(false)
+                canNotify -> onReminderEnabledChange(true)
+                else -> requestPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        },
+    )
+
+    val timeColors = if (preferences.reminderEnabled) {
+        ListItemDefaults.colors()
+    } else {
+        val disabled = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+        ListItemDefaults.colors(headlineColor = disabled, supportingColor = disabled)
+    }
+    ListItem(
+        headlineContent = { Text("Reminder time") },
+        supportingContent = { Text(timeText) },
+        colors = timeColors,
+        modifier = Modifier.clickable(enabled = preferences.reminderEnabled) { choosingTime = true },
+    )
+
+    if (!canNotify && (preferences.reminderEnabled || permissionRefused)) {
+        ListItem(
+            headlineContent = { Text("Notifications are off") },
+            supportingContent = { Text("Allow notifications for this app to get your reminder.") },
+            leadingContent = {
+                Icon(
+                    Icons.Outlined.NotificationsOff,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            },
+            trailingContent = {
+                TextButton(
+                    onClick = {
+                        context.startActivity(
+                            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                        )
+                    },
+                ) { Text("Open settings") }
+            },
+        )
+    }
+
+    if (choosingTime) {
+        ReminderTimeDialog(
+            initial = preferences.reminderTime,
+            is24Hour = is24Hour,
+            onDismiss = { choosingTime = false },
+            onConfirm = { time ->
+                onReminderTimeChange(time)
+                choosingTime = false
+            },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReminderTimeDialog(
+    initial: LocalTime,
+    is24Hour: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: (LocalTime) -> Unit,
+) {
+    val state = rememberTimePickerState(
+        initialHour = initial.hour,
+        initialMinute = initial.minute,
+        is24Hour = is24Hour,
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Reminder time") },
+        text = { TimePicker(state = state) },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(LocalTime.of(state.hour, state.minute)) }) { Text("Set") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+/** Times like "8:00 PM", or "20:00" when the phone uses a 24-hour clock. */
+internal fun reminderTimeFormatter(is24Hour: Boolean): DateTimeFormatter =
+    DateTimeFormatter.ofPattern(if (is24Hour) "HH:mm" else "h:mm a", Locale.getDefault())
 
 @Composable
 private fun AboutSection() {

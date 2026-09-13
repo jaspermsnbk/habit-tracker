@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
+import java.time.LocalTime
 
 /**
  * Exposes habit state to the UI as a [StateFlow] and forwards user actions to the
@@ -51,6 +52,10 @@ class HabitViewModel(
     fun setFirstDayOfWeek(day: DayOfWeek?) = preferencesStore.setFirstDayOfWeek(day)
 
     internal fun setTrendsRange(range: TrendRange) = preferencesStore.setTrendsRange(range.name)
+
+    fun setReminderEnabled(enabled: Boolean) = preferencesStore.setReminderEnabled(enabled)
+
+    fun setReminderTime(time: LocalTime) = preferencesStore.setReminderTime(time)
 
     fun addHabit(name: String, color: String, labelId: String? = null) = viewModelScope.launch {
         repository.addHabit(name, color, labelId)

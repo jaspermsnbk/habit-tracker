@@ -33,7 +33,8 @@ class SettingsScreenTest {
 
     @Before
     fun setUp() {
-        db = inMemoryDatabase()
+        // These tests never wait for habit data, so keep queries from outliving them.
+        db = inMemoryDatabase(synchronous = true)
         val viewModel = HabitViewModel(HabitRepository(db.habitDao()), testPreferences())
         composeRule.setContent { SettingsScreen(viewModel, onBack = { backPresses++ }) }
     }
