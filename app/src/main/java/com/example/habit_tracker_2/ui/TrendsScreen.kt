@@ -31,7 +31,6 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -73,7 +72,11 @@ private val SHORT_DAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("M
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TrendsScreen(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
+fun TrendsScreen(
+    viewModel: HabitViewModel,
+    modifier: Modifier = Modifier,
+    onOpenSettings: () -> Unit = {},
+) {
     val habits by viewModel.habits.collectAsState()
     val labels by viewModel.labels.collectAsState()
     var range by rememberSaveable { mutableStateOf(TrendRange.Month) }
@@ -93,7 +96,7 @@ fun TrendsScreen(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
 
     Scaffold(
         modifier = modifier,
-        topBar = { TopAppBar(title = { Text("Trends") }) },
+        topBar = { HabitTopBar("Trends", onOpenSettings) },
     ) { innerPadding ->
         if (habits.isEmpty()) {
             Box(

@@ -1,5 +1,6 @@
 package com.example.habit_tracker_2.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
@@ -16,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -26,10 +28,23 @@ private enum class Tab(val label: String, val icon: ImageVector) {
     Trends("Trends", Icons.Filled.Insights),
 }
 
-/** Top-level shell once the user is in: a bottom navigation bar switching between screens. */
+/**
+ * Top-level shell once the user is in: a bottom navigation bar switching between screens,
+ * with settings opening over all of them.
+ */
 @Composable
 fun HabitApp(viewModel: HabitViewModel) {
     var tab by rememberSaveable { mutableStateOf(Tab.Habits) }
+    var showSettings by rememberSaveable { mutableStateOf(false) }
+    // Keeps each tab's filters, month and range while it's off screen, including behind settings.
+    val tabStates = rememberSaveableStateHolder()
+
+    BackHandler(enabled = showSettings) { showSettings = false }
+
+    if (showSettings) {
+        SettingsScreen(onBack = { showSettings = false })
+        return
+    }
 
     Scaffold(
         bottomBar = {
@@ -50,10 +65,13 @@ fun HabitApp(viewModel: HabitViewModel) {
         val screenModifier = Modifier
             .padding(innerPadding)
             .consumeWindowInsets(innerPadding)
-        when (tab) {
-            Tab.Habits -> HabitListScreen(viewModel, screenModifier)
-            Tab.Calendar -> CalendarScreen(viewModel, screenModifier)
-            Tab.Trends -> TrendsScreen(viewModel, screenModifier)
+        val openSettings = { showSettings = true }
+        tabStates.SaveableStateProvider(tab.name) {
+            when (tab) {
+                Tab.Habits -> HabitListScreen(viewModel, screenModifier, openSettings)
+                Tab.Calendar -> CalendarScreen(viewModel, screenModifier, openSettings)
+                Tab.Trends -> TrendsScreen(viewModel, screenModifier, openSettings)
+            }
         }
     }
 }

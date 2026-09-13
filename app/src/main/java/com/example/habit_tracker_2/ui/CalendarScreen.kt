@@ -31,7 +31,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -71,7 +70,11 @@ internal const val DAY_HABITS_LIST_TAG = "dayHabitsList"
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CalendarScreen(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
+fun CalendarScreen(
+    viewModel: HabitViewModel,
+    modifier: Modifier = Modifier,
+    onOpenSettings: () -> Unit = {},
+) {
     val habits by viewModel.habits.collectAsState()
     val labels by viewModel.labels.collectAsState()
     var month by rememberSaveable { mutableStateOf(YearMonth.now()) }
@@ -88,7 +91,7 @@ fun CalendarScreen(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
 
     Scaffold(
         modifier = modifier,
-        topBar = { TopAppBar(title = { Text("Calendar") }) },
+        topBar = { HabitTopBar("Calendar", onOpenSettings) },
     ) { innerPadding ->
         if (habits.isEmpty()) {
             Box(

@@ -45,7 +45,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -70,7 +69,11 @@ import com.example.habit_tracker_2.data.HabitUi
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HabitListScreen(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
+fun HabitListScreen(
+    viewModel: HabitViewModel,
+    modifier: Modifier = Modifier,
+    onOpenSettings: () -> Unit = {},
+) {
     val habits by viewModel.habits.collectAsState()
     val labels by viewModel.labels.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
@@ -83,7 +86,7 @@ fun HabitListScreen(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
 
     Scaffold(
         modifier = modifier,
-        topBar = { TopAppBar(title = { Text("Habits") }) },
+        topBar = { HabitTopBar("Habits", onOpenSettings) },
         floatingActionButton = {
             AddSpeedDial(
                 onAddHabit = { showAddDialog = true },
