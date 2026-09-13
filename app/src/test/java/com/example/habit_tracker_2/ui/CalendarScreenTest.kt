@@ -1,6 +1,11 @@
 package com.example.habit_tracker_2.ui
 
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -89,5 +94,40 @@ class CalendarScreenTest {
         composeRule.onNodeWithText(current.minusMonths(1).format(MONTH_FORMAT)).assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Next month").assertIsEnabled().performClick()
         composeRule.onNodeWithText(current.format(MONTH_FORMAT)).assertIsDisplayed()
+    }
+
+    @Test
+    fun tappingDay_withAllHabits_listsHabitsCompletedThatDay() {
+        composeRule.onNodeWithContentDescription("$todayLabel, completed: Read").performClick()
+
+        composeRule.onNodeWithText(today.format(SHEET_DATE_FORMAT)).assertIsDisplayed()
+        composeRule.onNodeWithText("1 of 2 habits completed").assertIsDisplayed()
+        composeRule.onNode(hasText("Read") and hasAnyAncestor(hasTestTag(DAY_HABITS_LIST_TAG)))
+            .assertIsDisplayed()
+        composeRule.onNode(hasText("Run") and hasAnyAncestor(hasTestTag(DAY_HABITS_LIST_TAG)))
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun tappingDay_withNothingCompleted_saysSo() {
+        val day = YearMonth.now().minusMonths(1).atDay(15)
+        composeRule.onNodeWithContentDescription("Previous month").performClick()
+
+        composeRule.onNodeWithContentDescription("${day.format(DAY_FORMAT)}, nothing completed").performClick()
+
+        composeRule.onNodeWithText(day.format(SHEET_DATE_FORMAT)).assertIsDisplayed()
+        composeRule.onNodeWithText("Nothing completed").assertIsDisplayed()
+        composeRule.onNodeWithTag(DAY_HABITS_LIST_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun tappingDay_withOneHabitSelected_doesNotOpenDetails() {
+        composeRule.onNodeWithText("Read").performClick()
+
+        composeRule.onNodeWithContentDescription("$todayLabel, completed: Read")
+            .assertHasNoClickAction()
+            .performClick()
+
+        composeRule.onNodeWithText(today.format(SHEET_DATE_FORMAT)).assertDoesNotExist()
     }
 }

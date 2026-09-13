@@ -2,6 +2,7 @@ package com.example.habit_tracker_2.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +14,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -24,9 +28,11 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,9 +43,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.habit_tracker_2.data.HabitUi
 import java.time.DayOfWeek
@@ -52,6 +61,8 @@ import java.util.Locale
 
 internal val MONTH_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM yyyy")
 internal val DAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM d")
+internal val SHEET_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy")
+internal const val DAY_HABITS_LIST_TAG = "dayHabitsList"
 
 /**
  * Month view of completed days. "All habits" shows a colored dot per habit done that day;
@@ -63,6 +74,8 @@ fun CalendarScreen(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
     val habits by viewModel.habits.collectAsState()
     var month by rememberSaveable { mutableStateOf(YearMonth.now()) }
     var selectedHabitId by rememberSaveable { mutableStateOf<String?>(null) }
+    // The day whose completed habits are listed in the bottom sheet, if open.
+    var openDay by rememberSaveable { mutableStateOf<LocalDate?>(null) }
     // Falls back to "All habits" if the selected habit is deleted.
     val selected = habits.find { it.id == selectedHabitId }
     val today = LocalDate.now()
@@ -101,11 +114,22 @@ fun CalendarScreen(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
                     onNext = { month = month.plusMonths(1) },
                 )
                 Spacer(Modifier.size(8.dp))
-                MonthGrid(month, today, habits, selected)
+                MonthGrid(
+                    month = month,
+                    today = today,
+                    habits = habits,
+                    selected = selected,
+                    // Day details list every habit, so they're only offered under "All habits".
+                    onDayClick = if (selected == null) { day -> openDay = day } else null,
+                )
                 Spacer(Modifier.size(16.dp))
                 MonthSummary(month, habits, selected)
             }
         }
+    }
+
+    openDay?.let { day ->
+        DayHabitsSheet(date = day, habits = habits, onDismiss = { openDay = null })
     }
 }
 
@@ -161,7 +185,13 @@ private fun MonthHeader(
 }
 
 @Composable
-private fun MonthGrid(month: YearMonth, today: LocalDate, habits: List<HabitUi>, selected: HabitUi?) {
+private fun MonthGrid(
+    month: YearMonth,
+    today: LocalDate,
+    habits: List<HabitUi>,
+    selected: HabitUi?,
+    onDayClick: ((LocalDate) -> Unit)?,
+) {
     val locale = Locale.getDefault()
     val firstDayOfWeek = WeekFields.of(locale).firstDayOfWeek
 
@@ -186,7 +216,19 @@ private fun MonthGrid(month: YearMonth, today: LocalDate, habits: List<HabitUi>,
                     if (date == null) {
                         Spacer(cellModifier)
                     } else {
-                        DayCell(date, today, habits, selected, cellModifier)
+                        DayCell(
+                            date = date,
+                            today = today,
+                            habits = habits,
+                            selected = selected,
+                            // Nothing can be completed in the future, so those days aren't tappable.
+                            onClick = if (onDayClick != null && date <= today) {
+                                { onDayClick(date) }
+                            } else {
+                                null
+                            },
+                            modifier = cellModifier,
+                        )
                     }
                 }
             }
@@ -200,6 +242,7 @@ private fun DayCell(
     today: LocalDate,
     habits: List<HabitUi>,
     selected: HabitUi?,
+    onClick: (() -> Unit)?,
     modifier: Modifier,
 ) {
     val done = (if (selected != null) listOf(selected) else habits).filter { date in it.completedDates }
@@ -210,7 +253,14 @@ private fun DayCell(
     Box(
         modifier
             .padding(2.dp)
-            .clearAndSetSemantics { contentDescription = description },
+            .clip(CircleShape)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .clearAndSetSemantics {
+                contentDescription = description
+                if (onClick != null) {
+                    onClick(label = "Show completed habits") { onClick(); true }
+                }
+            },
         contentAlignment = Alignment.Center,
     ) {
         Box(
@@ -267,6 +317,60 @@ private fun MonthSummary(month: YearMonth, habits: List<HabitUi>, selected: Habi
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
+}
+
+/** Bottom sheet listing the habits completed on [date]. Reads live [habits], so it stays current. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DayHabitsSheet(date: LocalDate, habits: List<HabitUi>, onDismiss: () -> Unit) {
+    val done = habits.filter { date in it.completedDates }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
+        Column(
+            Modifier
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 24.dp)
+        ) {
+            Text(date.format(SHEET_DATE_FORMAT), style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.size(4.dp))
+            Text(
+                if (done.isEmpty()) {
+                    "Nothing completed"
+                } else {
+                    "${done.size} of ${habits.size} ${if (habits.size == 1) "habit" else "habits"} completed"
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (done.isNotEmpty()) {
+                Spacer(Modifier.size(16.dp))
+                LazyColumn(
+                    modifier = Modifier.testTag(DAY_HABITS_LIST_TAG),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(done, key = { it.id }) { habit ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                Modifier
+                                    .size(12.dp)
+                                    .background(parseColor(habit.color), CircleShape)
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                habit.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 /**
