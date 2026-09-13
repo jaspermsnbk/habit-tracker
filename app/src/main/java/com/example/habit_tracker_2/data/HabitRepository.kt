@@ -10,6 +10,7 @@ import java.util.UUID
  * A habit plus its derived, display-ready state. The UI reads this and nothing else.
  *
  * @param last7 completion flags for the 7 days ending today (index 0 = 6 days ago, index 6 = today)
+ * @param completedDates every day this habit was completed, for the calendar
  */
 data class HabitUi(
     val id: String,
@@ -18,6 +19,7 @@ data class HabitUi(
     val doneToday: Boolean,
     val currentStreak: Int,
     val last7: List<Boolean>,
+    val completedDates: Set<LocalDate>,
 )
 
 /**
@@ -43,6 +45,7 @@ class HabitRepository(private val dao: HabitDao) {
                     doneToday = today in dates,
                     currentStreak = currentStreak(dates, today),
                     last7 = (6 downTo 0).map { offset -> today.minusDays(offset.toLong()) in dates },
+                    completedDates = dates,
                 )
             }
         }

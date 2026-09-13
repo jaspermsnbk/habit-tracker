@@ -1,6 +1,8 @@
 package com.example.habit_tracker_2
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -26,7 +28,7 @@ class MainActivityTest {
         ActivityScenario.launch(MainActivity::class.java).use {
             composeRule.onNodeWithText("Continue as guest").performClick()
 
-            composeRule.onNodeWithText("Habits").assertIsDisplayed()
+            composeRule.onNodeWithContentDescription("Add habit").assertIsDisplayed()
             composeRule.onNodeWithText("Continue as guest").assertDoesNotExist()
             assertTrue(app.sessionStore.isGuest)
         }
@@ -50,7 +52,23 @@ class MainActivityTest {
             scenario.recreate()
 
             composeRule.onNodeWithText("Continue as guest").assertDoesNotExist()
-            composeRule.onNodeWithText("Habits").assertIsDisplayed()
+            composeRule.onNodeWithContentDescription("Add habit").assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun navigationBar_switchesBetweenHabitsAndCalendar() {
+        app.sessionStore.continueAsGuest()
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            composeRule.onNode(hasText("Calendar") and hasClickAction()).performClick()
+
+            composeRule.onNodeWithText("Add a habit to see your history here.").assertIsDisplayed()
+            composeRule.onNodeWithContentDescription("Add habit").assertDoesNotExist()
+
+            composeRule.onNode(hasText("Habits") and hasClickAction()).performClick()
+
+            composeRule.onNodeWithContentDescription("Add habit").assertIsDisplayed()
         }
     }
 }

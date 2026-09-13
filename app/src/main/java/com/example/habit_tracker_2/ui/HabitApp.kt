@@ -1,0 +1,56 @@
+package com.example.habit_tracker_2.ui
+
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+
+private enum class Tab(val label: String, val icon: ImageVector) {
+    Habits("Habits", Icons.Filled.CheckCircle),
+    Calendar("Calendar", Icons.Filled.CalendarMonth),
+}
+
+/** Top-level shell once the user is in: a bottom navigation bar switching between screens. */
+@Composable
+fun HabitApp(viewModel: HabitViewModel) {
+    var tab by rememberSaveable { mutableStateOf(Tab.Habits) }
+
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                Tab.entries.forEach { item ->
+                    NavigationBarItem(
+                        selected = tab == item,
+                        onClick = { tab = item },
+                        icon = { Icon(item.icon, contentDescription = null) },
+                        label = { Text(item.label) },
+                    )
+                }
+            }
+        },
+        // Each screen has its own Scaffold and top bar, which handle the status bar inset.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    ) { innerPadding ->
+        val screenModifier = Modifier
+            .padding(innerPadding)
+            .consumeWindowInsets(innerPadding)
+        when (tab) {
+            Tab.Habits -> HabitListScreen(viewModel, screenModifier)
+            Tab.Calendar -> CalendarScreen(viewModel, screenModifier)
+        }
+    }
+}

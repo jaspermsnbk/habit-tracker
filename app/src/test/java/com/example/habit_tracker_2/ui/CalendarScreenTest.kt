@@ -1,0 +1,93 @@
+package com.example.habit_tracker_2.ui
+
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.habit_tracker_2.data.HabitDatabase
+import com.example.habit_tracker_2.data.HabitRepository
+import com.example.habit_tracker_2.data.inMemoryDatabase
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import org.junit.After
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import java.time.LocalDate
+import java.time.YearMonth
+
+@RunWith(AndroidJUnit4::class)
+class CalendarScreenTest {
+
+    @get:Rule
+    val composeRule = createComposeRule()
+
+    private lateinit var db: HabitDatabase
+    private val today = LocalDate.now()
+    private val todayLabel = today.format(DAY_FORMAT)
+
+    @Before
+    fun setUp() {
+        db = inMemoryDatabase()
+        val repository = HabitRepository(db.habitDao())
+        runBlocking {
+            repository.addHabit("Read", "#2E7D32")
+            repository.addHabit("Run", "#1565C0")
+            val read = repository.habits.first().first { it.name == "Read" }
+            repository.toggleToday(read.id)
+        }
+
+        val viewModel = HabitViewModel(repository)
+        composeRule.setContent { CalendarScreen(viewModel) }
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText("Run").fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    @After
+    fun tearDown() {
+        db.close()
+    }
+
+    @Test
+    fun showsCurrentMonth_withNextDisabled() {
+        composeRule.onNodeWithText(YearMonth.now().format(MONTH_FORMAT)).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Next month").assertIsNotEnabled()
+    }
+
+    @Test
+    fun allHabits_marksWhichHabitsWereCompletedToday() {
+        composeRule.onNodeWithContentDescription("$todayLabel, completed: Read").assertExists()
+        composeRule.onNodeWithText("1 check-in this month").assertExists()
+    }
+
+    @Test
+    fun selectingHabit_showsOnlyThatHabitsDays() {
+        composeRule.onNodeWithText("Run").performClick()
+
+        composeRule.onNodeWithContentDescription("$todayLabel, nothing completed").assertExists()
+        composeRule.onNodeWithText("Run: 0 days this month").assertExists()
+
+        composeRule.onNodeWithText("Read").performClick()
+
+        composeRule.onNodeWithContentDescription("$todayLabel, completed: Read").assertExists()
+        composeRule.onNodeWithText("Read: 1 day this month").assertExists()
+    }
+
+    @Test
+    fun monthNavigation_movesBackAndForward() {
+        val current = YearMonth.now()
+
+        composeRule.onNodeWithContentDescription("Previous month").performClick()
+
+        composeRule.onNodeWithText(current.minusMonths(1).format(MONTH_FORMAT)).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Next month").assertIsEnabled().performClick()
+        composeRule.onNodeWithText(current.format(MONTH_FORMAT)).assertIsDisplayed()
+    }
+}

@@ -13,7 +13,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.habit_tracker_2.ui.HabitListScreen
+import com.example.habit_tracker_2.ui.HabitApp
 import com.example.habit_tracker_2.ui.HabitViewModel
 import com.example.habit_tracker_2.ui.LandingScreen
 import com.example.habit_tracker_2.ui.theme.HabitTrackerTheme
@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
                     var hasSession by rememberSaveable { mutableStateOf(sessionStore.isGuest) }
                     if (hasSession) {
                         val viewModel: HabitViewModel = viewModel(factory = HabitViewModel.Factory)
-                        HabitListScreen(viewModel)
+                        HabitApp(viewModel)
                     } else {
                         LandingScreen(
                             onContinueAsGuest = {

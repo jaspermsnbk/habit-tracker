@@ -78,6 +78,7 @@ class HabitRepositoryTest {
         assertFalse(habit.doneToday)
         assertEquals(2, habit.currentStreak)
         assertEquals(listOf(false, false, false, false, true, true, false), habit.last7)
+        assertEquals(setOf(today.minusDays(1), today.minusDays(2)), habit.completedDates)
     }
 
     @Test

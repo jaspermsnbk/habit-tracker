@@ -51,12 +51,13 @@ import com.example.habit_tracker_2.data.HabitUi
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HabitListScreen(viewModel: HabitViewModel) {
+fun HabitListScreen(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
     val habits by viewModel.habits.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<HabitUi?>(null) }
 
     Scaffold(
+        modifier = modifier,
         topBar = { TopAppBar(title = { Text("Habits") }) },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {
@@ -227,6 +228,6 @@ private fun WeekRow(last7: List<Boolean>, accent: Color) {
 }
 
 /** Parse a "#RRGGBB" string; fall back to a neutral color if malformed. */
-private fun parseColor(hex: String): Color =
+internal fun parseColor(hex: String): Color =
     runCatching { Color(hex.toColorInt()) }
         .getOrDefault(Color(0xFF6650A4))
