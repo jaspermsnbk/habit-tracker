@@ -2,6 +2,7 @@ package com.example.habit_tracker_2.data
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -11,6 +12,7 @@ import java.util.UUID
  *
  * @param last7 completion flags for the 7 days ending today (index 0 = 6 days ago, index 6 = today)
  * @param completedDates every day this habit was completed, for the calendar
+ * @param labelName the name of the habit's label, or null if it has none
  */
 data class HabitUi(
     val id: String,
@@ -20,6 +22,14 @@ data class HabitUi(
     val currentStreak: Int,
     val last7: List<Boolean>,
     val completedDates: Set<LocalDate>,
+    val labelId: String?,
+    val labelName: String?,
+)
+
+/** A label as the UI sees it. */
+data class LabelUi(
+    val id: String,
+    val name: String,
 )
 
 /**
@@ -28,13 +38,18 @@ data class HabitUi(
  */
 class HabitRepository(private val dao: HabitDao) {
 
+    /** Live stream of labels, sorted by name ignoring case. */
+    val labels: Flow<List<LabelUi>> =
+        dao.observeLabels().map { labels -> labels.map { LabelUi(id = it.id, name = it.name) } }
+
     /** Live stream of habits with streaks computed. Recombines whenever data changes. */
     val habits: Flow<List<HabitUi>> =
-        combine(dao.observeHabits(), dao.observeAllEntries()) { habits, entries ->
+        combine(dao.observeHabits(), dao.observeAllEntries(), dao.observeLabels()) { habits, entries, labels ->
             val today = LocalDate.now()
             val datesByHabit: Map<String, Set<LocalDate>> =
                 entries.groupBy { it.habitId }
                     .mapValues { (_, list) -> list.map { it.date }.toSet() }
+            val labelNames = labels.associate { it.id to it.name }
 
             habits.map { habit ->
                 val dates = datesByHabit[habit.id].orEmpty()
@@ -46,11 +61,13 @@ class HabitRepository(private val dao: HabitDao) {
                     currentStreak = currentStreak(dates, today),
                     last7 = (6 downTo 0).map { offset -> today.minusDays(offset.toLong()) in dates },
                     completedDates = dates,
+                    labelId = habit.labelId,
+                    labelName = habit.labelId?.let(labelNames::get),
                 )
             }
         }
 
-    suspend fun addHabit(name: String, color: String) {
+    suspend fun addHabit(name: String, color: String, labelId: String? = null) {
         val now = Instant.now()
         dao.upsertHabit(
             HabitEntity(
@@ -59,8 +76,26 @@ class HabitRepository(private val dao: HabitDao) {
                 color = color,
                 createdAt = now,
                 updatedAt = now,
+                labelId = labelId,
             )
         )
+    }
+
+    /**
+     * Adds a label unless the name is blank or matches an existing label ignoring case.
+     * @return whether the label was added
+     */
+    suspend fun addLabel(name: String): Boolean {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty() || dao.findLabelByName(trimmed) != null) return false
+        dao.insertLabel(
+            LabelEntity(
+                id = UUID.randomUUID().toString(),
+                name = trimmed,
+                createdAt = Instant.now(),
+            )
+        )
+        return true
     }
 
     /** Toggle today's completion: unmark if already done, otherwise mark done. */

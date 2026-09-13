@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.habit_tracker_2.HabitApplication
 import com.example.habit_tracker_2.data.HabitRepository
 import com.example.habit_tracker_2.data.HabitUi
+import com.example.habit_tracker_2.data.LabelUi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -15,7 +16,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Exposes habit state to the UI as a [StateFlow] and forwards user actions to the
- * repository. The UI is a pure function of [habits]; it never touches the data layer directly.
+ * repository. The UI is a pure function of [habits] and [labels]; it never touches the data layer directly.
  */
 class HabitViewModel(private val repository: HabitRepository) : ViewModel() {
 
@@ -26,8 +27,19 @@ class HabitViewModel(private val repository: HabitRepository) : ViewModel() {
             initialValue = emptyList(),
         )
 
-    fun addHabit(name: String, color: String) = viewModelScope.launch {
-        repository.addHabit(name, color)
+    val labels: StateFlow<List<LabelUi>> =
+        repository.labels.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList(),
+        )
+
+    fun addHabit(name: String, color: String, labelId: String? = null) = viewModelScope.launch {
+        repository.addHabit(name, color, labelId)
+    }
+
+    fun addLabel(name: String) = viewModelScope.launch {
+        repository.addLabel(name)
     }
 
     fun toggleToday(habitId: String) = viewModelScope.launch {

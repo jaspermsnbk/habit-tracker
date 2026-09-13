@@ -10,7 +10,7 @@ import java.time.Instant
 import java.time.LocalDate
 
 /**
- * Data access for habits and their completion entries.
+ * Data access for habits, their completion entries, and labels.
  * Queries returning [Flow] emit again whenever the underlying tables change,
  * which is what drives automatic UI updates.
  */
@@ -37,4 +37,13 @@ interface HabitDao {
 
     @Query("DELETE FROM habit_entries WHERE habitId = :habitId AND date = :date")
     suspend fun deleteEntry(habitId: String, date: LocalDate)
+
+    @Query("SELECT * FROM labels ORDER BY name COLLATE NOCASE ASC")
+    fun observeLabels(): Flow<List<LabelEntity>>
+
+    @Query("SELECT * FROM labels WHERE name = :name COLLATE NOCASE LIMIT 1")
+    suspend fun findLabelByName(name: String): LabelEntity?
+
+    @Insert
+    suspend fun insertLabel(label: LabelEntity)
 }

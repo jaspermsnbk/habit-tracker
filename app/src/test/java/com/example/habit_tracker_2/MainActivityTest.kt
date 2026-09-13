@@ -28,7 +28,7 @@ class MainActivityTest {
         ActivityScenario.launch(MainActivity::class.java).use {
             composeRule.onNodeWithText("Continue as guest").performClick()
 
-            composeRule.onNodeWithContentDescription("Add habit").assertIsDisplayed()
+            composeRule.onNodeWithContentDescription("Add").assertIsDisplayed()
             composeRule.onNodeWithText("Continue as guest").assertDoesNotExist()
             assertTrue(app.sessionStore.isGuest)
         }
@@ -40,7 +40,7 @@ class MainActivityTest {
 
         ActivityScenario.launch(MainActivity::class.java).use {
             composeRule.onNodeWithText("Continue as guest").assertDoesNotExist()
-            composeRule.onNodeWithContentDescription("Add habit").assertIsDisplayed()
+            composeRule.onNodeWithContentDescription("Add").assertIsDisplayed()
         }
     }
 
@@ -52,7 +52,7 @@ class MainActivityTest {
             scenario.recreate()
 
             composeRule.onNodeWithText("Continue as guest").assertDoesNotExist()
-            composeRule.onNodeWithContentDescription("Add habit").assertIsDisplayed()
+            composeRule.onNodeWithContentDescription("Add").assertIsDisplayed()
         }
     }
 
@@ -64,11 +64,11 @@ class MainActivityTest {
             composeRule.onNode(hasText("Calendar") and hasClickAction()).performClick()
 
             composeRule.onNodeWithText("Add a habit to see your history here.").assertIsDisplayed()
-            composeRule.onNodeWithContentDescription("Add habit").assertDoesNotExist()
+            composeRule.onNodeWithContentDescription("Add").assertDoesNotExist()
 
             composeRule.onNode(hasText("Habits") and hasClickAction()).performClick()
 
-            composeRule.onNodeWithContentDescription("Add habit").assertIsDisplayed()
+            composeRule.onNodeWithContentDescription("Add").assertIsDisplayed()
         }
     }
 }

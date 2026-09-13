@@ -5,10 +5,12 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [HabitEntity::class, HabitEntryEntity::class],
-    version = 1,
+    entities = [HabitEntity::class, HabitEntryEntity::class, LabelEntity::class],
+    version = 2,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -27,7 +29,23 @@ abstract class HabitDatabase : RoomDatabase() {
                     context.applicationContext,
                     HabitDatabase::class.java,
                     "habits.db",
-                ).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2).build().also { instance = it }
             }
+    }
+}
+
+/** v2 adds labels: a `labels` table and a nullable `habits.labelId` referencing it. */
+internal val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `labels` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, " +
+                "`createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+        )
+        // SQLite allows adding a REFERENCES column in place as long as it defaults to NULL.
+        db.execSQL(
+            "ALTER TABLE `habits` ADD COLUMN `labelId` TEXT " +
+                "REFERENCES `labels`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL"
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_habits_labelId` ON `habits` (`labelId`)")
     }
 }

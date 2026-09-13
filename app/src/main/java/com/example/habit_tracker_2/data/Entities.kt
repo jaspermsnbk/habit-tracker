@@ -9,9 +9,21 @@ import java.time.LocalDate
 
 /**
  * A habit the user is tracking. `id` is a UUID string so it can match the
- * server's id later (Phase 3+). `archived` is a soft-delete flag.
+ * server's id later (Phase 3+). `archived` is a soft-delete flag. `labelId`
+ * optionally groups the habit under a [LabelEntity]; deleting the label just clears it.
  */
-@Entity(tableName = "habits")
+@Entity(
+    tableName = "habits",
+    foreignKeys = [
+        ForeignKey(
+            entity = LabelEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["labelId"],
+            onDelete = ForeignKey.SET_NULL,
+        )
+    ],
+    indices = [Index(value = ["labelId"])],
+)
 data class HabitEntity(
     @PrimaryKey val id: String,
     val name: String,
@@ -19,6 +31,7 @@ data class HabitEntity(
     val archived: Boolean = false,
     val createdAt: Instant,
     val updatedAt: Instant,
+    val labelId: String? = null,
 )
 
 /**
@@ -45,5 +58,16 @@ data class HabitEntryEntity(
     @PrimaryKey val id: String,
     val habitId: String,
     val date: LocalDate,
+    val createdAt: Instant,
+)
+
+/**
+ * A user-defined habit type, like "Fitness". Names are unique ignoring case,
+ * which the repository enforces.
+ */
+@Entity(tableName = "labels")
+data class LabelEntity(
+    @PrimaryKey val id: String,
+    val name: String,
     val createdAt: Instant,
 )

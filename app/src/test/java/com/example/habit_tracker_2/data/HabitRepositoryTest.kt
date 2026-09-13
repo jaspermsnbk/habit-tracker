@@ -6,6 +6,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -90,5 +91,37 @@ class HabitRepositoryTest {
         repository.deleteHabit(read.id)
 
         assertEquals(listOf("Run"), repository.habits.first().map { it.name })
+    }
+
+    @Test
+    fun addLabel_trimsAndSortsByNameIgnoringCase() = runBlocking {
+        assertTrue(repository.addLabel(" Learning "))
+        assertTrue(repository.addLabel("fitness"))
+
+        assertEquals(listOf("fitness", "Learning"), repository.labels.first().map { it.name })
+    }
+
+    @Test
+    fun addLabel_rejectsBlankAndDuplicateNamesIgnoringCase() = runBlocking {
+        assertTrue(repository.addLabel("Fitness"))
+
+        assertFalse(repository.addLabel("FITNESS"))
+        assertFalse(repository.addLabel("   "))
+        assertEquals(1, repository.labels.first().size)
+    }
+
+    @Test
+    fun habitWithLabel_exposesLabelIdAndName() = runBlocking {
+        repository.addLabel("Fitness")
+        val label = repository.labels.first().single()
+
+        repository.addHabit("Run", "#2E7D32", label.id)
+        repository.addHabit("Read", "#1565C0")
+
+        val habits = repository.habits.first().associateBy { it.name }
+        assertEquals(label.id, habits.getValue("Run").labelId)
+        assertEquals("Fitness", habits.getValue("Run").labelName)
+        assertNull(habits.getValue("Read").labelId)
+        assertNull(habits.getValue("Read").labelName)
     }
 }

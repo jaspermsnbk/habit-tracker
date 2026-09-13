@@ -1,5 +1,12 @@
 package com.example.habit_tracker_2.ui
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,9 +24,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.AddTask
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material3.AlertDialog
@@ -27,10 +37,12 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -39,10 +51,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -53,34 +72,53 @@ import com.example.habit_tracker_2.data.HabitUi
 @Composable
 fun HabitListScreen(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
     val habits by viewModel.habits.collectAsState()
+    val labels by viewModel.labels.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
+    var showAddLabelDialog by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<HabitUi?>(null) }
+    var selectedLabelId by rememberSaveable { mutableStateOf<String?>(null) }
+    // Falls back to "All labels" if the selected label no longer exists.
+    val selectedLabel = labels.find { it.id == selectedLabelId }
+    val visibleHabits = if (selectedLabel == null) habits else habits.filter { it.labelId == selectedLabel.id }
 
     Scaffold(
         modifier = modifier,
         topBar = { TopAppBar(title = { Text("Habits") }) },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add habit")
-            }
+            AddSpeedDial(
+                onAddHabit = { showAddDialog = true },
+                onAddLabel = { showAddLabelDialog = true },
+            )
         },
     ) { innerPadding ->
-        if (habits.isEmpty()) {
-            EmptyState(Modifier.padding(innerPadding))
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                items(habits, key = { it.id }) { habit ->
-                    HabitCard(
-                        habit = habit,
-                        onToggle = { viewModel.toggleToday(habit.id) },
-                        onDelete = { pendingDelete = habit },
-                    )
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            if (labels.isNotEmpty()) {
+                LabelFilter(
+                    labels = labels,
+                    selected = selectedLabel,
+                    onSelect = { selectedLabelId = it },
+                    modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
+                )
+            }
+            when {
+                habits.isEmpty() -> EmptyState("No habits yet.\nTap + to add your first one.")
+                visibleHabits.isEmpty() -> EmptyState("No habits with this label yet.")
+                else -> LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(visibleHabits, key = { it.id }) { habit ->
+                        HabitCard(
+                            habit = habit,
+                            onToggle = { viewModel.toggleToday(habit.id) },
+                            onDelete = { pendingDelete = habit },
+                        )
+                    }
                 }
             }
         }
@@ -88,10 +126,23 @@ fun HabitListScreen(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
 
     if (showAddDialog) {
         AddHabitDialog(
+            labels = labels,
+            initialLabelId = selectedLabel?.id,
             onDismiss = { showAddDialog = false },
-            onConfirm = { name, color ->
-                viewModel.addHabit(name, color)
+            onConfirm = { name, color, labelId ->
+                viewModel.addHabit(name, color, labelId)
                 showAddDialog = false
+            },
+        )
+    }
+
+    if (showAddLabelDialog) {
+        AddLabelDialog(
+            existingNames = labels.map { it.name },
+            onDismiss = { showAddLabelDialog = false },
+            onConfirm = { name ->
+                viewModel.addLabel(name)
+                showAddLabelDialog = false
             },
         )
     }
@@ -119,11 +170,87 @@ fun HabitListScreen(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
     }
 }
 
+/** The + button. Tapping it reveals the "Add habit" and "Add label" actions above it. */
 @Composable
-private fun EmptyState(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+private fun AddSpeedDial(onAddHabit: () -> Unit, onAddLabel: () -> Unit) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    BackHandler(enabled = expanded) { expanded = false }
+    val rotation by animateFloatAsState(if (expanded) 45f else 0f, label = "speedDialRotation")
+
+    Column(
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn() + expandVertically(expandFrom = Alignment.Bottom),
+            exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Bottom),
+        ) {
+            Column(
+                // Centers the smaller action icons over the main button.
+                modifier = Modifier.padding(end = 8.dp),
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                SpeedDialItem("Add label", Icons.AutoMirrored.Outlined.Label) {
+                    expanded = false
+                    onAddLabel()
+                }
+                SpeedDialItem("Add habit", Icons.Outlined.AddTask) {
+                    expanded = false
+                    onAddHabit()
+                }
+            }
+        }
+        FloatingActionButton(onClick = { expanded = !expanded }) {
+            Icon(
+                Icons.Default.Add,
+                contentDescription = if (expanded) "Close add menu" else "Add",
+                modifier = Modifier.rotate(rotation),
+            )
+        }
+    }
+}
+
+/** One speed dial action: a text label beside a small icon, clickable as a single button. */
+@Composable
+private fun SpeedDialItem(text: String, icon: ImageVector, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .clickable(role = Role.Button, onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.small,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shadowElevation = 2.dp,
+        ) {
+            Text(
+                text,
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            )
+        }
+        Surface(
+            shape = FloatingActionButtonDefaults.smallShape,
+            color = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            shadowElevation = 3.dp,
+        ) {
+            Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null)
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyState(message: String) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(
-            "No habits yet.\nTap + to add your first one.",
+            message,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -149,13 +276,20 @@ private fun HabitCard(
             Spacer(Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    habit.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        habit.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    habit.labelName?.let { labelName ->
+                        Spacer(Modifier.width(8.dp))
+                        LabelPill(labelName)
+                    }
+                }
                 Spacer(Modifier.size(4.dp))
                 StreakRow(streak = habit.currentStreak)
                 Spacer(Modifier.size(8.dp))
@@ -170,6 +304,24 @@ private fun HabitCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun LabelPill(name: String) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        modifier = Modifier.clearAndSetSemantics { contentDescription = "Label: $name" },
+    ) {
+        Text(
+            name,
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+        )
     }
 }
 

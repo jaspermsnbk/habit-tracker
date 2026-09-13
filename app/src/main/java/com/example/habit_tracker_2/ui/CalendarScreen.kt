@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.habit_tracker_2.data.HabitUi
+import com.example.habit_tracker_2.data.LabelUi
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -72,12 +73,17 @@ internal const val DAY_HABITS_LIST_TAG = "dayHabitsList"
 @Composable
 fun CalendarScreen(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
     val habits by viewModel.habits.collectAsState()
+    val labels by viewModel.labels.collectAsState()
     var month by rememberSaveable { mutableStateOf(YearMonth.now()) }
+    var selectedLabelId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedHabitId by rememberSaveable { mutableStateOf<String?>(null) }
     // The day whose completed habits are listed in the bottom sheet, if open.
     var openDay by rememberSaveable { mutableStateOf<LocalDate?>(null) }
-    // Falls back to "All habits" if the selected habit is deleted.
-    val selected = habits.find { it.id == selectedHabitId }
+    // Selections fall back to "All" if the label or habit is deleted. Everything below the
+    // label filter (habit chips, grid, summary, day details) only sees that label's habits.
+    val selectedLabel = labels.find { it.id == selectedLabelId }
+    val labelHabits = if (selectedLabel == null) habits else habits.filter { it.labelId == selectedLabel.id }
+    val selected = labelHabits.find { it.id == selectedHabitId }
     val today = LocalDate.now()
 
     Scaffold(
@@ -105,7 +111,18 @@ fun CalendarScreen(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
             ) {
-                HabitFilter(habits, selected, onSelect = { selectedHabitId = it })
+                if (labels.isNotEmpty()) {
+                    LabelFilter(
+                        labels = labels,
+                        selected = selectedLabel,
+                        onSelect = {
+                            selectedLabelId = it
+                            selectedHabitId = null
+                        },
+                    )
+                    Spacer(Modifier.size(8.dp))
+                }
+                HabitFilter(labelHabits, selected, onSelect = { selectedHabitId = it })
                 Spacer(Modifier.size(16.dp))
                 MonthHeader(
                     month = month,
@@ -117,19 +134,19 @@ fun CalendarScreen(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
                 MonthGrid(
                     month = month,
                     today = today,
-                    habits = habits,
+                    habits = labelHabits,
                     selected = selected,
                     // Day details list every habit, so they're only offered under "All habits".
                     onDayClick = if (selected == null) { day -> openDay = day } else null,
                 )
                 Spacer(Modifier.size(16.dp))
-                MonthSummary(month, habits, selected)
+                MonthSummary(month, labelHabits, selected, selectedLabel)
             }
         }
     }
 
     openDay?.let { day ->
-        DayHabitsSheet(date = day, habits = habits, onDismiss = { openDay = null })
+        DayHabitsSheet(date = day, habits = labelHabits, onDismiss = { openDay = null })
     }
 }
 
@@ -302,7 +319,12 @@ private fun DayCell(
 }
 
 @Composable
-private fun MonthSummary(month: YearMonth, habits: List<HabitUi>, selected: HabitUi?) {
+private fun MonthSummary(
+    month: YearMonth,
+    habits: List<HabitUi>,
+    selected: HabitUi?,
+    selectedLabel: LabelUi?,
+) {
     fun countIn(habit: HabitUi) = habit.completedDates.count { YearMonth.from(it) == month }
 
     val text = if (selected != null) {
@@ -310,7 +332,8 @@ private fun MonthSummary(month: YearMonth, habits: List<HabitUi>, selected: Habi
         "${selected.name}: $days ${if (days == 1) "day" else "days"} this month"
     } else {
         val checkIns = habits.sumOf(::countIn)
-        "$checkIns ${if (checkIns == 1) "check-in" else "check-ins"} this month"
+        val prefix = selectedLabel?.let { "${it.name}: " }.orEmpty()
+        "$prefix$checkIns ${if (checkIns == 1) "check-in" else "check-ins"} this month"
     }
     Text(
         text,
