@@ -62,6 +62,12 @@ class SettingsScreenTest {
     }
 
     @Test
+    fun aboutSection_showsAppVersion() {
+        composeRule.onNode(hasText("About") and isHeading()).performScrollTo()
+        composeRule.onNode(hasText("Version") and hasText("1.0")).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     fun backArrow_callsOnBack() {
         composeRule.onNodeWithContentDescription("Back").performClick()
 
