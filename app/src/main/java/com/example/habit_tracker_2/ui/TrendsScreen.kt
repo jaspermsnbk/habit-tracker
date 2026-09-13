@@ -75,16 +75,21 @@ private val SHORT_DAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("M
 @Composable
 fun TrendsScreen(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
     val habits by viewModel.habits.collectAsState()
+    val labels by viewModel.labels.collectAsState()
     var range by rememberSaveable { mutableStateOf(TrendRange.Month) }
+    var selectedLabelId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedHabitId by rememberSaveable { mutableStateOf<String?>(null) }
-    // Falls back to "All habits" if the selected habit is deleted.
-    val selected = habits.find { it.id == selectedHabitId }
+    // Selections fall back to "All" if the label or habit is deleted. Everything below the
+    // label filter only sees that label's habits.
+    val selectedLabel = labels.find { it.id == selectedLabelId }
+    val labelHabits = if (selectedLabel == null) habits else habits.filter { it.labelId == selectedLabel.id }
+    val selected = labelHabits.find { it.id == selectedHabitId }
     val today = LocalDate.now()
-    val trends = remember(habits, selected, range, today) {
-        computeTrends(if (selected != null) listOf(selected) else habits, range, today)
+    val trends = remember(labelHabits, selected, range, today) {
+        computeTrends(if (selected != null) listOf(selected) else labelHabits, range, today)
     }
-    // The chart bar being inspected; bars mean something else once the range or habit changes.
-    var inspected by rememberSaveable(range, selected?.id) { mutableStateOf<Int?>(null) }
+    // The chart bar being inspected; bars mean something else once the range or selection changes.
+    var inspected by rememberSaveable(range, selectedLabel?.id, selected?.id) { mutableStateOf<Int?>(null) }
 
     Scaffold(
         modifier = modifier,
@@ -112,7 +117,27 @@ fun TrendsScreen(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
             ) {
-                HabitFilter(habits, selected, onSelect = { selectedHabitId = it })
+                if (labels.isNotEmpty()) {
+                    LabelFilter(
+                        labels = labels,
+                        selected = selectedLabel,
+                        onSelect = {
+                            selectedLabelId = it
+                            selectedHabitId = null
+                        },
+                    )
+                    Spacer(Modifier.size(8.dp))
+                }
+                if (labelHabits.isEmpty()) {
+                    Spacer(Modifier.size(24.dp))
+                    Text(
+                        "No habits with this label yet.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    return@Column
+                }
+                HabitFilter(labelHabits, selected, onSelect = { selectedHabitId = it })
                 Spacer(Modifier.size(12.dp))
                 RangeSelector(range, onSelect = { range = it })
                 Spacer(Modifier.size(16.dp))
@@ -136,7 +161,7 @@ fun TrendsScreen(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
                     WeekdayPattern(trends.weekdayRates, accent)
                 }
 
-                if (selected == null && habits.size > 1) {
+                if (selected == null && labelHabits.size > 1) {
                     SectionTitle("By habit")
                     HabitBreakdown(trends.perHabit, onSelect = { selectedHabitId = it })
                 }
