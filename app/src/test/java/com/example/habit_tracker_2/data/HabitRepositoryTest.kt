@@ -124,4 +124,43 @@ class HabitRepositoryTest {
         assertNull(habits.getValue("Read").labelId)
         assertNull(habits.getValue("Read").labelName)
     }
+
+    @Test
+    fun renameLabel_trimsAndRenamesForItsHabits() = runBlocking {
+        repository.addLabel("Fitness")
+        val label = repository.labels.first().single()
+        repository.addHabit("Run", "#2E7D32", label.id)
+
+        assertTrue(repository.renameLabel(label.id, "  Exercise "))
+
+        assertEquals("Exercise", repository.labels.first().single().name)
+        assertEquals("Exercise", repository.habits.first().single().labelName)
+    }
+
+    @Test
+    fun renameLabel_rejectsBlankAndOtherLabelsNames_butAllowsChangingCase() = runBlocking {
+        repository.addLabel("Fitness")
+        repository.addLabel("Learning")
+        val fitness = repository.labels.first().first { it.name == "Fitness" }
+
+        assertFalse(repository.renameLabel(fitness.id, " "))
+        assertFalse(repository.renameLabel(fitness.id, "LEARNING"))
+        assertTrue(repository.renameLabel(fitness.id, "FITNESS"))
+
+        assertEquals(listOf("FITNESS", "Learning"), repository.labels.first().map { it.name })
+    }
+
+    @Test
+    fun deleteLabel_keepsItsHabitsWithoutALabel() = runBlocking {
+        repository.addLabel("Fitness")
+        val label = repository.labels.first().single()
+        repository.addHabit("Run", "#2E7D32", label.id)
+
+        repository.deleteLabel(label.id)
+
+        assertTrue(repository.labels.first().isEmpty())
+        val run = repository.habits.first().single()
+        assertNull(run.labelId)
+        assertNull(run.labelName)
+    }
 }

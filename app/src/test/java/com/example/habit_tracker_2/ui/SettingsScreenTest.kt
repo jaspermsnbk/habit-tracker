@@ -9,7 +9,12 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.habit_tracker_2.data.HabitDatabase
+import com.example.habit_tracker_2.data.HabitRepository
+import com.example.habit_tracker_2.data.inMemoryDatabase
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
@@ -22,11 +27,19 @@ class SettingsScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    private lateinit var db: HabitDatabase
     private var backPresses = 0
 
     @Before
     fun setUp() {
-        composeRule.setContent { SettingsScreen(onBack = { backPresses++ }) }
+        db = inMemoryDatabase()
+        val viewModel = HabitViewModel(HabitRepository(db.habitDao()))
+        composeRule.setContent { SettingsScreen(viewModel, onBack = { backPresses++ }) }
+    }
+
+    @After
+    fun tearDown() {
+        db.close()
     }
 
     @Test
@@ -40,6 +53,11 @@ class SettingsScreenTest {
     @Test
     fun signIn_isNotAvailableYet() {
         composeRule.onNode(hasText("Sign in") and hasClickAction()).assertIsNotEnabled()
+    }
+
+    @Test
+    fun labelsSection_withNoLabels_explainsThem() {
+        composeRule.onNodeWithText("No labels yet. $NEW_LABEL_DESCRIPTION").performScrollTo().assertIsDisplayed()
     }
 
     @Test

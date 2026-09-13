@@ -102,6 +102,25 @@ class HabitRepository(private val dao: HabitDao) {
         return true
     }
 
+    /**
+     * Renames a label unless the new name is blank or taken by another label ignoring case,
+     * so changing only a label's capitalization is allowed.
+     * @return whether the label was renamed
+     */
+    suspend fun renameLabel(labelId: String, name: String): Boolean {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return false
+        val sameName = dao.findLabelByName(trimmed)
+        if (sameName != null && sameName.id != labelId) return false
+        dao.renameLabel(labelId, trimmed)
+        return true
+    }
+
+    /** Deletes a label. Its habits stay, just without a label. */
+    suspend fun deleteLabel(labelId: String) {
+        dao.deleteLabel(labelId)
+    }
+
     /** Toggle today's completion: unmark if already done, otherwise mark done. */
     suspend fun toggleToday(habitId: String) {
         val today = LocalDate.now()

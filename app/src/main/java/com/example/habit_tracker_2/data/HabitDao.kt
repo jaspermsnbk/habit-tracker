@@ -46,4 +46,11 @@ interface HabitDao {
 
     @Insert
     suspend fun insertLabel(label: LabelEntity)
+
+    @Query("UPDATE labels SET name = :name WHERE id = :id")
+    suspend fun renameLabel(id: String, name: String)
+
+    /** The foreign key on `habits.labelId` clears the label from its habits. */
+    @Query("DELETE FROM labels WHERE id = :id")
+    suspend fun deleteLabel(id: String)
 }

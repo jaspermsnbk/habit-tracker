@@ -42,7 +42,7 @@ fun HabitApp(viewModel: HabitViewModel) {
     BackHandler(enabled = showSettings) { showSettings = false }
 
     if (showSettings) {
-        SettingsScreen(onBack = { showSettings = false })
+        SettingsScreen(viewModel, onBack = { showSettings = false })
         return
     }
 

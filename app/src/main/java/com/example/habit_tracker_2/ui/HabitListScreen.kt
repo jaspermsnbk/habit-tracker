@@ -140,7 +140,10 @@ fun HabitListScreen(
     }
 
     if (showAddLabelDialog) {
-        AddLabelDialog(
+        LabelNameDialog(
+            title = "New label",
+            confirmText = "Add",
+            description = NEW_LABEL_DESCRIPTION,
             existingNames = labels.map { it.name },
             onDismiss = { showAddLabelDialog = false },
             onConfirm = { name ->

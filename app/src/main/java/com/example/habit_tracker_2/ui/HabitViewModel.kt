@@ -42,6 +42,14 @@ class HabitViewModel(private val repository: HabitRepository) : ViewModel() {
         repository.addLabel(name)
     }
 
+    fun renameLabel(labelId: String, name: String) = viewModelScope.launch {
+        repository.renameLabel(labelId, name)
+    }
+
+    fun deleteLabel(labelId: String) = viewModelScope.launch {
+        repository.deleteLabel(labelId)
+    }
+
     fun toggleToday(habitId: String) = viewModelScope.launch {
         repository.toggleToday(habitId)
     }

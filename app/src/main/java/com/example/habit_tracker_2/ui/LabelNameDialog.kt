@@ -17,28 +17,39 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-/** Dialog for creating a label. Blocks blank names and names already taken (ignoring case). */
+internal const val NEW_LABEL_DESCRIPTION = "Labels group habits by type, like Fitness or Learning."
+
+/**
+ * Dialog for naming a label, whether new or renamed. Blocks blank names and any of
+ * [existingNames] (ignoring case); when renaming, leave the label's own name out of those.
+ */
 @Composable
-fun AddLabelDialog(
+fun LabelNameDialog(
+    title: String,
+    confirmText: String,
     existingNames: List<String>,
     onDismiss: () -> Unit,
     onConfirm: (name: String) -> Unit,
+    initialName: String = "",
+    description: String? = null,
 ) {
-    var name by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf(initialName) }
     val trimmed = name.trim()
     val duplicate = existingNames.any { it.equals(trimmed, ignoreCase = true) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("New label") },
+        title = { Text(title) },
         text = {
             Column {
-                Text(
-                    "Labels group habits by type, like Fitness or Learning.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.size(16.dp))
+                if (description != null) {
+                    Text(
+                        description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.size(16.dp))
+                }
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -58,7 +69,7 @@ fun AddLabelDialog(
             TextButton(
                 onClick = { onConfirm(trimmed) },
                 enabled = trimmed.isNotEmpty() && !duplicate,
-            ) { Text("Add") }
+            ) { Text(confirmText) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
