@@ -71,4 +71,16 @@ class MainActivityTest {
             composeRule.onNodeWithContentDescription("Add").assertIsDisplayed()
         }
     }
+
+    @Test
+    fun navigationBar_opensTrends() {
+        app.sessionStore.continueAsGuest()
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            composeRule.onNode(hasText("Trends") and hasClickAction()).performClick()
+
+            composeRule.onNodeWithText("Add a habit to see your trends here.").assertIsDisplayed()
+            composeRule.onNodeWithContentDescription("Add").assertDoesNotExist()
+        }
+    }
 }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -22,6 +23,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 private enum class Tab(val label: String, val icon: ImageVector) {
     Habits("Habits", Icons.Filled.CheckCircle),
     Calendar("Calendar", Icons.Filled.CalendarMonth),
+    Trends("Trends", Icons.Filled.Insights),
 }
 
 /** Top-level shell once the user is in: a bottom navigation bar switching between screens. */
@@ -51,6 +53,7 @@ fun HabitApp(viewModel: HabitViewModel) {
         when (tab) {
             Tab.Habits -> HabitListScreen(viewModel, screenModifier)
             Tab.Calendar -> CalendarScreen(viewModel, screenModifier)
+            Tab.Trends -> TrendsScreen(viewModel, screenModifier)
         }
     }
 }

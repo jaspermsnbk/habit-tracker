@@ -151,7 +151,7 @@ fun CalendarScreen(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun HabitFilter(habits: List<HabitUi>, selected: HabitUi?, onSelect: (String?) -> Unit) {
+internal fun HabitFilter(habits: List<HabitUi>, selected: HabitUi?, onSelect: (String?) -> Unit) {
     Row(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp),

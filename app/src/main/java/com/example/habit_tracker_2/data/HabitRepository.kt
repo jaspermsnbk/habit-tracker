@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.util.UUID
 
 /**
@@ -13,6 +14,7 @@ import java.util.UUID
  * @param last7 completion flags for the 7 days ending today (index 0 = 6 days ago, index 6 = today)
  * @param completedDates every day this habit was completed, for the calendar
  * @param labelName the name of the habit's label, or null if it has none
+ * @param createdOn the local day the habit was added, so trends don't count earlier days as missed
  */
 data class HabitUi(
     val id: String,
@@ -24,6 +26,7 @@ data class HabitUi(
     val completedDates: Set<LocalDate>,
     val labelId: String?,
     val labelName: String?,
+    val createdOn: LocalDate,
 )
 
 /** A label as the UI sees it. */
@@ -63,6 +66,7 @@ class HabitRepository(private val dao: HabitDao) {
                     completedDates = dates,
                     labelId = habit.labelId,
                     labelName = habit.labelId?.let(labelNames::get),
+                    createdOn = habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate(),
                 )
             }
         }
