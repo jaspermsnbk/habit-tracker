@@ -72,6 +72,10 @@ class HabitViewModel(
         repository.toggleToday(habitId)
     }
 
+    fun updateHabit(habitId: String, name: String, color: String, labelId: String?) = viewModelScope.launch {
+        repository.updateHabit(habitId, name, color, labelId)
+    }
+
     fun deleteHabit(habitId: String) = viewModelScope.launch {
         repository.deleteHabit(habitId)
     }

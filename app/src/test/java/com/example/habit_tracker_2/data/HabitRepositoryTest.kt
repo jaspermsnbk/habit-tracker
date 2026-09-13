@@ -163,4 +163,46 @@ class HabitRepositoryTest {
         assertNull(run.labelId)
         assertNull(run.labelName)
     }
+
+    @Test
+    fun updateHabit_changesNameColorAndLabel_butKeepsHistory() = runBlocking {
+        repository.addLabel("Learning")
+        val label = repository.labels.first().single()
+        repository.addHabit("Read", "#2E7D32")
+        val before = repository.habits.first().single()
+        repository.toggleToday(before.id)
+
+        assertTrue(repository.updateHabit(before.id, "  Read a book ", "#1565C0", label.id))
+
+        val after = repository.habits.first().single()
+        assertEquals("Read a book", after.name)
+        assertEquals("#1565C0", after.color)
+        assertEquals("Learning", after.labelName)
+        assertTrue(after.doneToday)
+        assertEquals(1, after.currentStreak)
+        assertEquals(before.createdOn, after.createdOn)
+    }
+
+    @Test
+    fun updateHabit_canClearLabel() = runBlocking {
+        repository.addLabel("Fitness")
+        val label = repository.labels.first().single()
+        repository.addHabit("Run", "#2E7D32", label.id)
+        val run = repository.habits.first().single()
+
+        assertTrue(repository.updateHabit(run.id, run.name, run.color, null))
+
+        assertNull(repository.habits.first().single().labelId)
+    }
+
+    @Test
+    fun updateHabit_rejectsBlankName() = runBlocking {
+        repository.addHabit("Read", "#2E7D32")
+        val read = repository.habits.first().single()
+
+        assertFalse(repository.updateHabit(read.id, "   ", "#1565C0", null))
+
+        assertEquals("Read", repository.habits.first().single().name)
+        assertEquals("#2E7D32", repository.habits.first().single().color)
+    }
 }

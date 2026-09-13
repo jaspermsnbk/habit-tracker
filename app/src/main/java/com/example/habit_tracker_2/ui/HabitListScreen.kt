@@ -79,6 +79,7 @@ fun HabitListScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var showAddLabelDialog by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<HabitUi?>(null) }
+    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedLabelId by rememberSaveable { mutableStateOf<String?>(null) }
     // Falls back to "All labels" if the selected label no longer exists.
     val selectedLabel = labels.find { it.id == selectedLabelId }
@@ -119,6 +120,7 @@ fun HabitListScreen(
                         HabitCard(
                             habit = habit,
                             onToggle = { viewModel.toggleToday(habit.id) },
+                            onEdit = { editingId = habit.id },
                             onDelete = { pendingDelete = habit },
                         )
                     }
@@ -128,13 +130,32 @@ fun HabitListScreen(
     }
 
     if (showAddDialog) {
-        AddHabitDialog(
+        HabitDialog(
+            title = "New habit",
+            confirmText = "Add",
             labels = labels,
             initialLabelId = selectedLabel?.id,
             onDismiss = { showAddDialog = false },
             onConfirm = { name, color, labelId ->
                 viewModel.addHabit(name, color, labelId)
                 showAddDialog = false
+            },
+        )
+    }
+
+    // Looked up by id, so the dialog closes by itself if the habit is deleted meanwhile.
+    habits.find { it.id == editingId }?.let { habit ->
+        HabitDialog(
+            title = "Edit habit",
+            confirmText = "Save",
+            labels = labels,
+            initialName = habit.name,
+            initialColor = habit.color,
+            initialLabelId = habit.labelId,
+            onDismiss = { editingId = null },
+            onConfirm = { name, color, labelId ->
+                viewModel.updateHabit(habit.id, name, color, labelId)
+                editingId = null
             },
         )
     }
@@ -267,13 +288,16 @@ private fun EmptyState(message: String) {
 private fun HabitCard(
     habit: HabitUi,
     onToggle: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val accent = parseColor(habit.color)
     Card(modifier = Modifier.fillMaxWidth()) {
+        // Tapping anywhere but the done toggle or delete button edits the habit.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clickable(onClickLabel = "Edit habit", onClick = onEdit)
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

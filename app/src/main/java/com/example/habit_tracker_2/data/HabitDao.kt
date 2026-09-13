@@ -29,6 +29,9 @@ interface HabitDao {
     @Query("UPDATE habits SET archived = 1, updatedAt = :now WHERE id = :id")
     suspend fun archiveHabit(id: String, now: Instant)
 
+    @Query("UPDATE habits SET name = :name, color = :color, labelId = :labelId, updatedAt = :now WHERE id = :id")
+    suspend fun updateHabit(id: String, name: String, color: String, labelId: String?, now: Instant)
+
     @Query("SELECT * FROM habit_entries WHERE habitId = :habitId AND date = :date LIMIT 1")
     suspend fun findEntry(habitId: String, date: LocalDate): HabitEntryEntity?
 

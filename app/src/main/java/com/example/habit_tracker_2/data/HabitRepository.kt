@@ -138,6 +138,17 @@ class HabitRepository(private val dao: HabitDao) {
         }
     }
 
+    /**
+     * Changes a habit's name, color and label. Its check-ins, streaks and start date stay as they are.
+     * @return whether the habit was updated; a blank name is rejected
+     */
+    suspend fun updateHabit(habitId: String, name: String, color: String, labelId: String?): Boolean {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return false
+        dao.updateHabit(habitId, trimmed, color, labelId, Instant.now())
+        return true
+    }
+
     suspend fun deleteHabit(habitId: String) {
         dao.archiveHabit(habitId, Instant.now())
     }
