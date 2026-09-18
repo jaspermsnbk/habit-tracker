@@ -5,13 +5,13 @@ plugins {
 }
 
 android {
-    namespace = "com.example.habit_tracker_2"
+    namespace = "com.jaspermsnbk.habit_tracker"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.example.habit_tracker_2"
+        applicationId = "com.jaspermsnbk.habit_tracker"
         minSdk = 33
         targetSdk = 37
         versionCode = 1
