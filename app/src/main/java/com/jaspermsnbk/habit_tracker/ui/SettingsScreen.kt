@@ -3,6 +3,7 @@ package com.jaspermsnbk.habit_tracker.ui
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.provider.Settings
 import android.text.format.DateFormat
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -29,6 +30,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Label
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Delete
@@ -590,7 +592,18 @@ private fun AboutSection() {
         headlineContent = { Text("Version") },
         supportingContent = { Text(version ?: "Unknown") },
     )
+    ListItem(
+        headlineContent = { Text("Privacy policy") },
+        trailingContent = {
+            Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null)
+        },
+        modifier = Modifier.clickable {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_POLICY_URL)))
+        },
+    )
 }
+
+private const val PRIVACY_POLICY_URL = "https://jaspermesenbrink.com/privacy-policy"
 
 private fun themeText(theme: ThemeMode): String = when (theme) {
     ThemeMode.System -> "System default"
