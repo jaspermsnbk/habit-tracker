@@ -1,5 +1,8 @@
 package com.jaspermsnbk.habit_tracker.ui
 
+import android.app.Application
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
@@ -10,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jaspermsnbk.habit_tracker.data.HabitDatabase
 import com.jaspermsnbk.habit_tracker.data.HabitRepository
@@ -21,6 +25,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Shadows.shadowOf
 
 @RunWith(AndroidJUnit4::class)
 class SettingsScreenTest {
@@ -66,6 +71,15 @@ class SettingsScreenTest {
     fun aboutSection_showsAppVersion() {
         composeRule.onNode(hasText("About") and isHeading()).performScrollTo()
         composeRule.onNode(hasText("Version") and hasText("1.0")).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun privacyPolicy_opensInBrowser() {
+        composeRule.onNodeWithText("Privacy policy").performScrollTo().performClick()
+
+        val intent = shadowOf(ApplicationProvider.getApplicationContext<Application>()).nextStartedActivity
+        assertEquals(Intent.ACTION_VIEW, intent.action)
+        assertEquals(Uri.parse("https://jaspermesenbrink.com/privacy-policy"), intent.data)
     }
 
     @Test
