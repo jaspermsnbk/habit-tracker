@@ -1,4 +1,11 @@
 <resources>
     <string name="app_name">Habit Tracker</string>
     <string name="habit_widget_label">Today\'s Habits</string>
+    <string name="habit_widget_description">Check off today\'s habits from your home screen.</string>
+
+    <!-- Sample rows, shown only in the widget picker's preview. -->
+    <string name="habit_widget_preview_title">Today</string>
+    <string name="habit_widget_preview_progress">1/2</string>
+    <string name="habit_widget_preview_first">☑  Drink water</string>
+    <string name="habit_widget_preview_second">☐  Read 10 pages</string>
 </resources>

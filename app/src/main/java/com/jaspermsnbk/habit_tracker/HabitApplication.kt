@@ -49,9 +49,13 @@ class HabitApplication : Application() {
                 }
         }
 
-        // Keeps the home screen widget in sync whenever habits change from inside the app.
+        // Keeps the home screen widget in sync whenever habits change from inside the app. Room
+        // re-emits on any write to the tables it watches, so identical lists are dropped rather
+        // than costing a redraw.
         appScope.launch {
-            repository.habits.collect { HabitWidget().updateAll(this@HabitApplication) }
+            repository.habits
+                .distinctUntilChanged()
+                .collect { HabitWidget.updateAll(this@HabitApplication) }
         }
     }
 }

@@ -9,4 +9,6 @@
     android:updatePeriodMillis="0"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
+    android:description="@string/habit_widget_description"
+    android:previewLayout="@layout/habit_widget_preview"
     android:initialLayout="@layout/glance_default_loading_layout" />

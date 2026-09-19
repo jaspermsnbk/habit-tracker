@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.glance.GlanceId
 import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.action.ActionCallback
-import androidx.glance.appwidget.update
 import com.jaspermsnbk.habit_tracker.HabitApplication
 
 internal val habitIdKey = ActionParameters.Key<String>("habitId")
@@ -14,6 +13,6 @@ class ToggleHabitAction : ActionCallback {
         val habitId = parameters[habitIdKey] ?: return
         val app = context.applicationContext as HabitApplication
         app.repository.toggleToday(habitId)
-        HabitWidget().update(context, glanceId) // refresh this instance immediately
+        HabitWidget.update(context, glanceId) // refresh this instance immediately
     }
 }
