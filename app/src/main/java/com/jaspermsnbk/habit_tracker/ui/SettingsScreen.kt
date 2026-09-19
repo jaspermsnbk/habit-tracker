@@ -81,7 +81,7 @@ import java.util.Locale
 
 /**
  * Full-screen settings, opened from the account button in [HabitTopBar]: account, labels,
- * preferences and about.
+ * preferences, data and about.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -139,6 +139,8 @@ fun SettingsScreen(viewModel: HabitViewModel, onBack: () -> Unit, modifier: Modi
                 )
             }
             HorizontalDivider()
+            SettingsSection("Data") { DataSection(onDeleteAll = viewModel::deleteAllData) }
+            HorizontalDivider()
             SettingsSection("About") { AboutSection() }
         }
     }
@@ -187,6 +189,44 @@ private fun AccountSection() {
             OutlinedButton(onClick = {}, enabled = false) { Text("Sign in") }
         },
     )
+}
+
+/**
+ * A single destructive action that wipes every habit, completion and label on the device.
+ * Requires confirmation, since it can't be undone.
+ */
+@Composable
+private fun DataSection(onDeleteAll: () -> Unit) {
+    var confirming by rememberSaveable { mutableStateOf(false) }
+
+    ListItem(
+        headlineContent = { Text("Delete all data", color = MaterialTheme.colorScheme.error) },
+        supportingContent = { Text("Permanently erase every habit, completion and label") },
+        leadingContent = {
+            Icon(Icons.Outlined.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+        },
+        modifier = Modifier.clickable { confirming = true },
+    )
+
+    if (confirming) {
+        AlertDialog(
+            onDismissRequest = { confirming = false },
+            title = { Text("Delete all data?") },
+            text = { Text("All habits, completions and labels will be permanently deleted. This can't be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteAll()
+                        confirming = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                ) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirming = false }) { Text("Cancel") }
+            },
+        )
+    }
 }
 
 /** Every label with its habit count. Tap a label to rename it; the trash icon deletes it. */

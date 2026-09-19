@@ -152,6 +152,13 @@ class HabitRepository(private val dao: HabitDao) {
     suspend fun deleteHabit(habitId: String) {
         dao.archiveHabit(habitId, Instant.now())
     }
+
+    /** Permanently wipes every habit, completion and label. This can't be undone. */
+    suspend fun deleteAllData() {
+        dao.deleteAllEntries()
+        dao.deleteAllHabits()
+        dao.deleteAllLabels()
+    }
 }
 
 /**
