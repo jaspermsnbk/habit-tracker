@@ -8,14 +8,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
+import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.Image
+import androidx.glance.ImageProvider
 import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
-import androidx.glance.appwidget.CheckBox
-import androidx.glance.appwidget.CheckboxDefaults
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionRunCallback
@@ -42,10 +43,15 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.jaspermsnbk.habit_tracker.HabitApplication
 import com.jaspermsnbk.habit_tracker.MainActivity
+import com.jaspermsnbk.habit_tracker.R
 import com.jaspermsnbk.habit_tracker.data.HabitUi
 
 /**
  * Home screen widget listing today's habits, each checkable in place.
+ *
+ * Deliberately mirrors the in-app habit list (ui/HabitListScreen.kt): the same accent ring toggle,
+ * the same streak wording and the same seven-dot week, on cards of the same shape. Glance has no
+ * Card, border or Material icons, so those are rebuilt here out of what a widget can draw.
  *
  * An `object` rather than a class so [HabitWidgetReceiver], the toggle action and the app all
  * refer to the same widget when they ask Glance to redraw it.
@@ -72,16 +78,16 @@ object HabitWidget : GlanceAppWidget() {
                         .appWidgetBackground()
                         .background(GlanceTheme.colors.widgetBackground)
                         .cornerRadius(16.dp)
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                        .padding(12.dp),
                 ) {
                     Header(done = habits.count { it.doneToday }, total = habits.size)
-                    Spacer(GlanceModifier.height(8.dp))
+                    Spacer(GlanceModifier.height(10.dp))
                     if (habits.isEmpty()) {
                         EmptyState()
                     } else {
                         LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
                             items(habits, itemId = { it.id.hashCode().toLong() }) { habit ->
-                                HabitRow(habit)
+                                HabitCard(habit)
                             }
                         }
                     }
@@ -91,7 +97,7 @@ object HabitWidget : GlanceAppWidget() {
     }
 }
 
-/** Title plus today's progress. Tapping it opens the app. */
+/** Title plus today's progress, standing in for the app's "Habits" top bar. */
 @Composable
 private fun Header(done: Int, total: Int) {
     Row(
@@ -102,14 +108,14 @@ private fun Header(done: Int, total: Int) {
             text = "Today",
             style = TextStyle(
                 color = GlanceTheme.colors.onSurface,
-                fontSize = 16.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
             ),
             modifier = GlanceModifier.defaultWeight(),
         )
         if (total > 0) {
             Text(
-                text = "$done/$total",
+                text = "$done of $total",
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurfaceVariant,
                     fontSize = 13.sp,
@@ -120,37 +126,110 @@ private fun Header(done: Int, total: Int) {
     }
 }
 
-/** One habit: its colour, its checkbox, and its streak once there is one. */
+/**
+ * One habit, laid out like the app's HabitCard: accent toggle, name and label, streak, week dots.
+ * Tapping anywhere but the toggle opens the app, where the habit can be edited.
+ */
 @Composable
-private fun HabitRow(habit: HabitUi) {
-    val accent = ColorProvider(accentOf(habit.color))
-    Row(
-        modifier = GlanceModifier.fillMaxWidth().padding(vertical = 2.dp),
-        verticalAlignment = Alignment.Vertical.CenterVertically,
+private fun HabitCard(habit: HabitUi) {
+    val accent = accentOf(habit.color)
+
+    Column(modifier = GlanceModifier.fillMaxWidth().padding(bottom = 8.dp)) {
+        Row(
+            modifier = GlanceModifier
+                .fillMaxWidth()
+                .background(GlanceTheme.colors.surface)
+                .cornerRadius(12.dp)
+                .clickable(actionStartActivity<MainActivity>())
+                .padding(10.dp),
+            verticalAlignment = Alignment.Vertical.CenterVertically,
+        ) {
+            DoneToggle(habit = habit, accent = accent)
+            Spacer(GlanceModifier.width(10.dp))
+            Column(modifier = GlanceModifier.defaultWeight()) {
+                Row(verticalAlignment = Alignment.Vertical.CenterVertically) {
+                    Text(
+                        text = habit.name,
+                        style = TextStyle(
+                            color = GlanceTheme.colors.onSurface,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                        maxLines = 1,
+                    )
+                    habit.labelName?.let { labelName ->
+                        Spacer(GlanceModifier.width(6.dp))
+                        LabelPill(labelName)
+                    }
+                }
+                Spacer(GlanceModifier.height(3.dp))
+                Text(
+                    text = if (habit.currentStreak == 0) {
+                        "No streak yet"
+                    } else {
+                        "🔥 ${habit.currentStreak} day streak"
+                    },
+                    style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 11.sp),
+                    maxLines = 1,
+                )
+                Spacer(GlanceModifier.height(5.dp))
+                WeekRow(last7 = habit.last7, accent = accent)
+            }
+        }
+    }
+}
+
+/** The app's 40dp toggle: an accent ring, filled with an accent check once today is done. */
+@Composable
+private fun DoneToggle(habit: HabitUi, accent: Color) {
+    val art = if (habit.doneToday) R.drawable.widget_habit_check else R.drawable.widget_habit_ring
+    Box(
+        modifier = GlanceModifier.size(36.dp).clickable(
+            actionRunCallback<ToggleHabitAction>(actionParametersOf(habitIdKey to habit.id))
+        ),
+        contentAlignment = Alignment.Center,
     ) {
-        Box(modifier = GlanceModifier.size(8.dp).cornerRadius(4.dp).background(accent)) {}
-        Spacer(GlanceModifier.width(8.dp))
-        CheckBox(
-            checked = habit.doneToday,
-            onCheckedChange = actionRunCallback<ToggleHabitAction>(
-                actionParametersOf(habitIdKey to habit.id)
-            ),
-            modifier = GlanceModifier.defaultWeight(),
-            text = habit.name,
-            style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 14.sp),
-            // A checkbox takes plain colours: handed GlanceTheme's resource-backed providers it
-            // throws, and the whole widget falls back to "can't show content".
-            colors = CheckboxDefaults.colors(
-                checkedColor = accentOf(habit.color),
-                uncheckedColor = UncheckedOutline,
-            ),
-            maxLines = 1,
+        Image(
+            provider = ImageProvider(art),
+            contentDescription = if (habit.doneToday) {
+                "${habit.name}, done today"
+            } else {
+                "${habit.name}, not done today"
+            },
+            modifier = GlanceModifier.size(32.dp),
+            colorFilter = ColorFilter.tint(ColorProvider(accent)),
         )
-        if (habit.currentStreak > 0) {
-            Text(
-                text = "${habit.currentStreak}d",
-                style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp),
-            )
+    }
+}
+
+/** The habit's label, as the app's rounded secondary-container pill. */
+@Composable
+private fun LabelPill(name: String) {
+    Text(
+        text = name,
+        style = TextStyle(color = GlanceTheme.colors.onSecondaryContainer, fontSize = 10.sp),
+        maxLines = 1,
+        modifier = GlanceModifier
+            .background(GlanceTheme.colors.secondaryContainer)
+            .cornerRadius(8.dp)
+            .padding(horizontal = 6.dp, vertical = 1.dp),
+    )
+}
+
+/** Seven dots for the last week; filled = completed that day, last dot = today. */
+@Composable
+private fun WeekRow(last7: List<Boolean>, accent: Color) {
+    Row {
+        last7.forEachIndexed { index, done ->
+            if (index > 0) Spacer(GlanceModifier.width(4.dp))
+            Box(
+                modifier = GlanceModifier
+                    .size(10.dp)
+                    .cornerRadius(5.dp)
+                    .background(
+                        if (done) ColorProvider(accent) else GlanceTheme.colors.surfaceVariant
+                    ),
+            ) {}
         }
     }
 }
@@ -162,14 +241,11 @@ private fun EmptyState() {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = "Tap to add your first habit",
+            text = "No habits yet.\nTap to add your first one.",
             style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp),
         )
     }
 }
-
-/** One outline grey, since a checkbox can't take a themed colour that follows day and night. */
-private val UncheckedOutline = Color(0xFF8A8791)
 
 /** Habit colours are stored as hex; fall back to the app's purple if one can't be parsed. */
 private fun accentOf(hex: String): Color =
