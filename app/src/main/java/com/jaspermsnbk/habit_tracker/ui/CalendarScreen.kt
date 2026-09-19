@@ -23,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.AcUnit
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -31,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -151,7 +153,13 @@ fun CalendarScreen(
     }
 
     openDay?.let { day ->
-        DayHabitsSheet(date = day, habits = labelHabits, onDismiss = { openDay = null })
+        DayHabitsSheet(
+            date = day,
+            habits = labelHabits,
+            today = today,
+            onDismiss = { openDay = null },
+            onUseFreeze = { id, date -> viewModel.useFreeze(id, date) },
+        )
     }
 }
 
@@ -350,8 +358,16 @@ private fun MonthSummary(
 /** Bottom sheet listing the habits completed on [date]. Reads live [habits], so it stays current. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DayHabitsSheet(date: LocalDate, habits: List<HabitUi>, onDismiss: () -> Unit) {
+private fun DayHabitsSheet(
+    date: LocalDate,
+    habits: List<HabitUi>,
+    today: LocalDate,
+    onDismiss: () -> Unit,
+    onUseFreeze: (habitId: String, date: LocalDate) -> Unit,
+) {
     val done = habits.filter { date in it.completedDates }
+    val frozen = habits.filter { date in it.frozenDates }
+    val missed = habits.filter { date !in it.completedDates && date !in it.frozenDates }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -393,6 +409,69 @@ private fun DayHabitsSheet(date: LocalDate, habits: List<HabitUi>, onDismiss: ()
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
+                        }
+                    }
+                }
+            }
+            if (frozen.isNotEmpty()) {
+                Spacer(Modifier.size(16.dp))
+                Text(
+                    "Protected by a freeze",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.size(8.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    frozen.forEach { habit ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Outlined.AcUnit,
+                                contentDescription = null,
+                                tint = FreezeColor,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                habit.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+            }
+            if (date < today && missed.isNotEmpty()) {
+                Spacer(Modifier.size(16.dp))
+                Text(
+                    "Missed",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.size(8.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    missed.forEach { habit ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                habit.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
+                            if (habit.freezesAvailable > 0) {
+                                Spacer(Modifier.width(12.dp))
+                                TextButton(onClick = { onUseFreeze(habit.id, date) }) {
+                                    Icon(
+                                        Icons.Outlined.AcUnit,
+                                        contentDescription = null,
+                                        tint = FreezeColor,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Freeze")
+                                }
+                            }
                         }
                     }
                 }

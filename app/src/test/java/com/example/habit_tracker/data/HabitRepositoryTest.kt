@@ -222,4 +222,87 @@ class HabitRepositoryTest {
         assertTrue(repository.habits.first().isEmpty())
         assertTrue(repository.labels.first().isEmpty())
     }
+
+    @Test
+    fun deleteAllData_alsoWipesFreezes() = runBlocking {
+        repository.addHabit("Read", "#2E7D32")
+        val id = repository.habits.first().single().id
+        val today = LocalDate.now()
+        seedSixPriorDays(id, today)
+        repository.toggleToday(id) // day 7: earns a freeze
+
+        repository.deleteAllData()
+
+        assertTrue(db.habitDao().observeFreezes().first().isEmpty())
+    }
+
+    private fun seedSixPriorDays(id: String, today: LocalDate) {
+        (1L..6L).forEach { offset ->
+            db.habitDao().insertEntry(
+                HabitEntryEntity(UUID.randomUUID().toString(), id, today.minusDays(offset), Instant.now())
+            )
+        }
+    }
+
+    @Test
+    fun sevenDayStreak_earnsOneFreeze() = runBlocking {
+        repository.addHabit("Read", "#2E7D32")
+        val id = repository.habits.first().single().id
+        val today = LocalDate.now()
+        seedSixPriorDays(id, today)
+
+        repository.toggleToday(id)
+
+        val habit = repository.habits.first().single()
+        assertEquals(7, habit.currentStreak)
+        assertEquals(1, habit.freezesAvailable)
+    }
+
+    @Test
+    fun togglingTodayOffAndOn_afterEarningAFreeze_doesNotAwardASecondOne() = runBlocking {
+        repository.addHabit("Read", "#2E7D32")
+        val id = repository.habits.first().single().id
+        val today = LocalDate.now()
+        seedSixPriorDays(id, today)
+        repository.toggleToday(id) // on: day 7, earns 1 freeze
+        assertEquals(1, repository.habits.first().single().freezesAvailable)
+
+        repository.toggleToday(id) // off: streak drops to 6
+        assertEquals(1, repository.habits.first().single().freezesAvailable)
+
+        repository.toggleToday(id) // on again: streak back to 7
+        assertEquals(1, repository.habits.first().single().freezesAvailable)
+    }
+
+    @Test
+    fun useFreeze_bridgesAMissedDayAndSpendsAFreeze() = runBlocking {
+        repository.addHabit("Read", "#2E7D32")
+        val id = repository.habits.first().single().id
+        val today = LocalDate.now()
+        // Entries on today-2 and today (today-1 missing), with a freeze already banked.
+        db.habitDao().insertEntry(HabitEntryEntity(UUID.randomUUID().toString(), id, today.minusDays(2), Instant.now()))
+        db.habitDao().insertEntry(HabitEntryEntity(UUID.randomUUID().toString(), id, today, Instant.now()))
+        db.habitDao().updateFreezeState(id, 1, 0)
+        assertEquals(1, repository.habits.first().single().currentStreak)
+
+        repository.useFreeze(id, today.minusDays(1))
+
+        val habit = repository.habits.first().single()
+        assertEquals(3, habit.currentStreak)
+        assertTrue(habit.frozenDates.contains(today.minusDays(1)))
+        assertEquals(0, habit.freezesAvailable)
+    }
+
+    @Test
+    fun useFreeze_isNoOp_whenNoFreezesAvailable() = runBlocking {
+        repository.addHabit("Read", "#2E7D32")
+        val id = repository.habits.first().single().id
+        val today = LocalDate.now()
+
+        repository.useFreeze(id, today.minusDays(1))
+
+        val habit = repository.habits.first().single()
+        assertTrue(habit.frozenDates.isEmpty())
+        assertEquals(0, habit.freezesAvailable)
+    }
 }

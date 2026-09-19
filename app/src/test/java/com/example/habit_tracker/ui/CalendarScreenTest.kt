@@ -21,6 +21,8 @@ import com.jaspermsnbk.habit_tracker.data.testPreferences
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -35,13 +37,14 @@ class CalendarScreenTest {
     val composeRule = createComposeRule()
 
     private lateinit var db: HabitDatabase
+    private lateinit var repository: HabitRepository
     private val today = LocalDate.now()
     private val todayLabel = today.format(DAY_FORMAT)
 
     @Before
     fun setUp() {
         db = inMemoryDatabase()
-        val repository = HabitRepository(db.habitDao())
+        repository = HabitRepository(db.habitDao())
         runBlocking {
             repository.addHabit("Read", "#2E7D32")
             repository.addHabit("Run", "#1565C0")
@@ -130,5 +133,39 @@ class CalendarScreenTest {
             .performClick()
 
         composeRule.onNodeWithText(today.format(SHEET_DATE_FORMAT)).assertDoesNotExist()
+    }
+
+    @Test
+    fun missedPastDay_withNoFreezeAvailable_showsNoFreezeButton() {
+        val day = YearMonth.now().minusMonths(1).atDay(15)
+        composeRule.onNodeWithContentDescription("Previous month").performClick()
+
+        composeRule.onNodeWithContentDescription("${day.format(DAY_FORMAT)}, nothing completed").performClick()
+
+        composeRule.onNodeWithText("Missed").assertIsDisplayed()
+        composeRule.onNodeWithText("Freeze").assertDoesNotExist()
+    }
+
+    @Test
+    fun missedPastDay_withFreezeAvailable_showsFreezeButton_andUsingItFreezesTheDay() {
+        val readId = runBlocking { repository.habits.first().first { it.name == "Read" }.id }
+        runBlocking { db.habitDao().updateFreezeState(readId, 1, 0) }
+        val day = YearMonth.now().minusMonths(1).atDay(15)
+        composeRule.onNodeWithContentDescription("Previous month").performClick()
+        composeRule.onNodeWithContentDescription("${day.format(DAY_FORMAT)}, nothing completed").performClick()
+
+        // Room emits on a background thread, so wait for the freeze state to reach the UI.
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText("Freeze").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Freeze").performClick()
+
+        // Room emits on a background thread, so wait for the UI (and repository) to catch up.
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText("Freeze").fetchSemanticsNodes().isEmpty()
+        }
+        val habit = runBlocking { repository.habits.first().first { it.name == "Read" } }
+        assertTrue(habit.frozenDates.contains(day))
+        assertEquals(0, habit.freezesAvailable)
     }
 }

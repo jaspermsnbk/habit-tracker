@@ -32,6 +32,8 @@ data class HabitEntity(
     val createdAt: Instant,
     val updatedAt: Instant,
     val labelId: String? = null,
+    val freezesAvailable: Int = 0,
+    val freezeMilestone: Int = 0,
 )
 
 /**
@@ -69,5 +71,32 @@ data class HabitEntryEntity(
 data class LabelEntity(
     @PrimaryKey val id: String,
     val name: String,
+    val createdAt: Instant,
+)
+
+/**
+ * One row per day a streak freeze was spent to protect a missed day, standing in for a real
+ * completion for streak purposes. The unique (habitId, date) index prevents double-freezing a
+ * day. Deleting a habit cascades to its freezes.
+ */
+@Entity(
+    tableName = "habit_freezes",
+    foreignKeys = [
+        ForeignKey(
+            entity = HabitEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["habitId"],
+            onDelete = ForeignKey.CASCADE,
+        )
+    ],
+    indices = [
+        Index(value = ["habitId", "date"], unique = true),
+        Index(value = ["habitId"]),
+    ],
+)
+data class HabitFreezeEntity(
+    @PrimaryKey val id: String,
+    val habitId: String,
+    val date: LocalDate,
     val createdAt: Instant,
 )

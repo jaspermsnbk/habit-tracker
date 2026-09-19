@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.LocalTime
 
 /**
@@ -75,6 +76,10 @@ class HabitViewModel(
 
     fun toggleToday(habitId: String) = viewModelScope.launch {
         repository.toggleToday(habitId)
+    }
+
+    fun useFreeze(habitId: String, date: LocalDate) = viewModelScope.launch {
+        repository.useFreeze(habitId, date)
     }
 
     fun updateHabit(habitId: String, name: String, color: String, labelId: String?) = viewModelScope.launch {

@@ -29,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.AcUnit
 import androidx.compose.material.icons.outlined.AddTask
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.LocalFireDepartment
@@ -66,6 +67,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.toColorInt
 import com.jaspermsnbk.habit_tracker.data.HabitUi
+
+/** Distinct icy-blue used for freeze-protected days, separate from a habit's own accent color. */
+internal val FreezeColor = Color(0xFF4FC3F7)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -321,9 +325,15 @@ private fun HabitCard(
                     }
                 }
                 Spacer(Modifier.size(4.dp))
-                StreakRow(streak = habit.currentStreak)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    StreakRow(streak = habit.currentStreak)
+                    if (habit.freezesAvailable > 0) {
+                        Spacer(Modifier.width(8.dp))
+                        FreezeCount(count = habit.freezesAvailable)
+                    }
+                }
                 Spacer(Modifier.size(8.dp))
-                WeekRow(last7 = habit.last7, accent = accent)
+                WeekRow(last7 = habit.last7, last7Frozen = habit.last7Frozen, accent = accent)
             }
 
             IconButton(onClick = onDelete) {
@@ -392,16 +402,44 @@ private fun StreakRow(streak: Int) {
     }
 }
 
-/** Seven dots for the last week; filled = completed that day, last dot = today. */
+/** Small icon + count showing how many streak freezes this habit has banked. */
 @Composable
-private fun WeekRow(last7: List<Boolean>, accent: Color) {
+private fun FreezeCount(count: Int) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            Icons.Outlined.AcUnit,
+            contentDescription = "Streak freezes available",
+            tint = FreezeColor,
+            modifier = Modifier.size(14.dp),
+        )
+        Spacer(Modifier.width(2.dp))
+        Text(
+            count.toString(),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
+ * Seven dots for the last week; filled with the habit's accent = completed that day, filled icy
+ * blue ([FreezeColor]) = protected by a freeze that day, and [MaterialTheme.colorScheme.surfaceVariant]
+ * otherwise (missed). Last dot = today.
+ */
+@Composable
+private fun WeekRow(last7: List<Boolean>, last7Frozen: List<Boolean>, accent: Color) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        last7.forEach { done ->
+        last7.forEachIndexed { index, done ->
+            val frozen = last7Frozen.getOrElse(index) { false }
             Box(
                 modifier = Modifier
                     .size(14.dp)
                     .background(
-                        color = if (done) accent else MaterialTheme.colorScheme.surfaceVariant,
+                        color = when {
+                            done -> accent
+                            frozen -> FreezeColor
+                            else -> MaterialTheme.colorScheme.surfaceVariant
+                        },
                         shape = CircleShape,
                     )
             )
