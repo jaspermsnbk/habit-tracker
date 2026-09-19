@@ -20,6 +20,9 @@ interface HabitDao {
     @Query("SELECT * FROM habits WHERE archived = 0 ORDER BY createdAt ASC")
     fun observeHabits(): Flow<List<HabitEntity>>
 
+    @Query("SELECT * FROM habits WHERE id = :id LIMIT 1")
+    suspend fun getHabit(id: String): HabitEntity?
+
     @Query("SELECT * FROM habit_entries")
     fun observeAllEntries(): Flow<List<HabitEntryEntity>>
 
@@ -29,8 +32,11 @@ interface HabitDao {
     @Query("UPDATE habits SET archived = 1, updatedAt = :now WHERE id = :id")
     suspend fun archiveHabit(id: String, now: Instant)
 
-    @Query("UPDATE habits SET name = :name, color = :color, labelId = :labelId, updatedAt = :now WHERE id = :id")
-    suspend fun updateHabit(id: String, name: String, color: String, labelId: String?, now: Instant)
+    @Query(
+        "UPDATE habits SET name = :name, color = :color, labelId = :labelId, emoji = :emoji, updatedAt = :now " +
+            "WHERE id = :id"
+    )
+    suspend fun updateHabit(id: String, name: String, color: String, labelId: String?, emoji: String?, now: Instant)
 
     @Query("SELECT * FROM habit_entries WHERE habitId = :habitId AND date = :date LIMIT 1")
     suspend fun findEntry(habitId: String, date: LocalDate): HabitEntryEntity?
@@ -40,6 +46,24 @@ interface HabitDao {
 
     @Query("DELETE FROM habit_entries WHERE habitId = :habitId AND date = :date")
     suspend fun deleteEntry(habitId: String, date: LocalDate)
+
+    @Query("SELECT date FROM habit_entries WHERE habitId = :habitId")
+    suspend fun entryDatesFor(habitId: String): List<LocalDate>
+
+    @Query("SELECT * FROM habit_freezes")
+    fun observeFreezes(): Flow<List<HabitFreezeEntity>>
+
+    @Query("SELECT date FROM habit_freezes WHERE habitId = :habitId")
+    suspend fun freezeDatesFor(habitId: String): List<LocalDate>
+
+    @Query("SELECT * FROM habit_freezes WHERE habitId = :habitId AND date = :date LIMIT 1")
+    suspend fun findFreeze(habitId: String, date: LocalDate): HabitFreezeEntity?
+
+    @Insert
+    suspend fun insertFreeze(freeze: HabitFreezeEntity)
+
+    @Query("UPDATE habits SET freezesAvailable = :freezes, freezeMilestone = :milestone WHERE id = :id")
+    suspend fun updateFreezeState(id: String, freezes: Int, milestone: Int)
 
     @Query("SELECT * FROM labels ORDER BY name COLLATE NOCASE ASC")
     fun observeLabels(): Flow<List<LabelEntity>>
@@ -65,4 +89,7 @@ interface HabitDao {
 
     @Query("DELETE FROM labels")
     suspend fun deleteAllLabels()
+
+    @Query("DELETE FROM habit_freezes")
+    suspend fun deleteAllFreezes()
 }

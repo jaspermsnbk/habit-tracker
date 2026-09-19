@@ -11,8 +11,12 @@ import java.util.UUID
 /**
  * A habit plus its derived, display-ready state. The UI reads this and nothing else.
  *
+ * @param emoji an optional single emoji shown instead of the color dot
  * @param last7 completion flags for the 7 days ending today (index 0 = 6 days ago, index 6 = today)
+ * @param last7Frozen whether each of those same 7 days was protected by a streak freeze instead
  * @param completedDates every day this habit was completed, for the calendar
+ * @param frozenDates every day protected by a streak freeze instead of an actual completion
+ * @param freezesAvailable streak freezes earned but not yet spent
  * @param labelName the name of the habit's label, or null if it has none
  * @param createdOn the local day the habit was added, so trends don't count earlier days as missed
  */
@@ -20,10 +24,14 @@ data class HabitUi(
     val id: String,
     val name: String,
     val color: String,
+    val emoji: String?,
     val doneToday: Boolean,
     val currentStreak: Int,
     val last7: List<Boolean>,
+    val last7Frozen: List<Boolean>,
     val completedDates: Set<LocalDate>,
+    val frozenDates: Set<LocalDate>,
+    val freezesAvailable: Int,
     val labelId: String?,
     val labelName: String?,
     val createdOn: LocalDate,
@@ -47,23 +55,36 @@ class HabitRepository(private val dao: HabitDao) {
 
     /** Live stream of habits with streaks computed. Recombines whenever data changes. */
     val habits: Flow<List<HabitUi>> =
-        combine(dao.observeHabits(), dao.observeAllEntries(), dao.observeLabels()) { habits, entries, labels ->
+        combine(
+            dao.observeHabits(),
+            dao.observeAllEntries(),
+            dao.observeLabels(),
+            dao.observeFreezes(),
+        ) { habits, entries, labels, freezes ->
             val today = LocalDate.now()
             val datesByHabit: Map<String, Set<LocalDate>> =
                 entries.groupBy { it.habitId }
+                    .mapValues { (_, list) -> list.map { it.date }.toSet() }
+            val frozenByHabit: Map<String, Set<LocalDate>> =
+                freezes.groupBy { it.habitId }
                     .mapValues { (_, list) -> list.map { it.date }.toSet() }
             val labelNames = labels.associate { it.id to it.name }
 
             habits.map { habit ->
                 val dates = datesByHabit[habit.id].orEmpty()
+                val frozen = frozenByHabit[habit.id].orEmpty()
                 HabitUi(
                     id = habit.id,
                     name = habit.name,
                     color = habit.color,
+                    emoji = habit.emoji,
                     doneToday = today in dates,
-                    currentStreak = currentStreak(dates, today),
+                    currentStreak = currentStreak(dates + frozen, today),
                     last7 = (6 downTo 0).map { offset -> today.minusDays(offset.toLong()) in dates },
+                    last7Frozen = (6 downTo 0).map { offset -> today.minusDays(offset.toLong()) in frozen },
                     completedDates = dates,
+                    frozenDates = frozen,
+                    freezesAvailable = habit.freezesAvailable,
                     labelId = habit.labelId,
                     labelName = habit.labelId?.let(labelNames::get),
                     createdOn = habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate(),
@@ -71,7 +92,7 @@ class HabitRepository(private val dao: HabitDao) {
             }
         }
 
-    suspend fun addHabit(name: String, color: String, labelId: String? = null) {
+    suspend fun addHabit(name: String, color: String, labelId: String? = null, emoji: String? = null) {
         val now = Instant.now()
         dao.upsertHabit(
             HabitEntity(
@@ -81,6 +102,7 @@ class HabitRepository(private val dao: HabitDao) {
                 createdAt = now,
                 updatedAt = now,
                 labelId = labelId,
+                emoji = emoji,
             )
         )
     }
@@ -136,16 +158,68 @@ class HabitRepository(private val dao: HabitDao) {
                 )
             )
         }
+        syncFreezeState(habitId)
     }
 
     /**
-     * Changes a habit's name, color and label. Its check-ins, streaks and start date stay as they are.
+     * Spends one streak freeze to retroactively protect [date] for [habitId], as if it had been
+     * completed for streak purposes. No-op if there's no freeze to spend, or the day is already
+     * completed or frozen.
+     */
+    suspend fun useFreeze(habitId: String, date: LocalDate) {
+        val habit = dao.getHabit(habitId) ?: return
+        if (habit.freezesAvailable <= 0) return
+        if (dao.findEntry(habitId, date) != null) return
+        if (dao.findFreeze(habitId, date) != null) return
+        dao.insertFreeze(
+            HabitFreezeEntity(
+                id = UUID.randomUUID().toString(),
+                habitId = habitId,
+                date = date,
+                createdAt = Instant.now(),
+            )
+        )
+        dao.updateFreezeState(habitId, habit.freezesAvailable - 1, habit.freezeMilestone)
+        syncFreezeState(habitId)
+    }
+
+    /**
+     * Recomputes the habit's current streak from its completed and frozen dates and reconciles
+     * [HabitEntity.freezesAvailable]/[HabitEntity.freezeMilestone] against it: a freeze is earned
+     * the first time the streak reaches a new multiple of [FREEZE_MILESTONE_INTERVAL] days.
+     *
+     * The milestone tracks the streak *through yesterday*, which — unlike today's — can't be
+     * changed by toggling today's entry back and forth, so repeatedly toggling today on and off
+     * at a 7-day mark can't farm extra freezes. A real gap (a day genuinely missed) pulls the
+     * milestone back down to yesterday's streak plus one, so a fresh run can earn again at 7.
+     */
+    private suspend fun syncFreezeState(habitId: String) {
+        val habit = dao.getHabit(habitId) ?: return
+        val today = LocalDate.now()
+        val protectedDates = (dao.entryDatesFor(habitId) + dao.freezeDatesFor(habitId)).toSet()
+        val streakThroughYesterday = strictStreak(protectedDates - today, today.minusDays(1))
+        val streakThroughToday = currentStreak(protectedDates, today)
+
+        var milestone = minOf(habit.freezeMilestone, streakThroughYesterday + 1)
+        var freezes = habit.freezesAvailable
+        if (streakThroughToday > milestone && streakThroughToday % FREEZE_MILESTONE_INTERVAL == 0) {
+            freezes = minOf(freezes + 1, MAX_HABIT_FREEZES)
+            milestone = streakThroughToday
+        }
+        if (milestone != habit.freezeMilestone || freezes != habit.freezesAvailable) {
+            dao.updateFreezeState(habitId, freezes, milestone)
+        }
+    }
+
+    /**
+     * Changes a habit's name, color, emoji and label. Its check-ins, streaks and start date stay
+     * as they are.
      * @return whether the habit was updated; a blank name is rejected
      */
-    suspend fun updateHabit(habitId: String, name: String, color: String, labelId: String?): Boolean {
+    suspend fun updateHabit(habitId: String, name: String, color: String, labelId: String?, emoji: String? = null): Boolean {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return false
-        dao.updateHabit(habitId, trimmed, color, labelId, Instant.now())
+        dao.updateHabit(habitId, trimmed, color, labelId, emoji, Instant.now())
         return true
     }
 
@@ -153,13 +227,20 @@ class HabitRepository(private val dao: HabitDao) {
         dao.archiveHabit(habitId, Instant.now())
     }
 
-    /** Permanently wipes every habit, completion and label. This can't be undone. */
+    /** Permanently wipes every habit, completion, freeze and label. This can't be undone. */
     suspend fun deleteAllData() {
         dao.deleteAllEntries()
+        dao.deleteAllFreezes()
         dao.deleteAllHabits()
         dao.deleteAllLabels()
     }
 }
+
+/** A habit's streak freezes are capped so they can't be stockpiled indefinitely. */
+internal const val MAX_HABIT_FREEZES = 3
+
+/** A freeze is earned every time the streak reaches a new multiple of this many days. */
+internal const val FREEZE_MILESTONE_INTERVAL = 7
 
 /**
  * Count consecutive completed days ending today (or yesterday). Missing today does not
@@ -167,6 +248,21 @@ class HabitRepository(private val dao: HabitDao) {
  */
 internal fun currentStreak(dates: Set<LocalDate>, today: LocalDate): Int {
     var cursor = if (today in dates) today else today.minusDays(1)
+    var streak = 0
+    while (cursor in dates) {
+        streak++
+        cursor = cursor.minusDays(1)
+    }
+    return streak
+}
+
+/**
+ * Like [currentStreak], but without the leniency that forgives [end] itself being missing.
+ * Used to measure a streak through a day that's unambiguously over (yesterday or earlier),
+ * where that leniency would wrongly treat the day as still open.
+ */
+private fun strictStreak(dates: Set<LocalDate>, end: LocalDate): Int {
+    var cursor = end
     var streak = 0
     while (cursor in dates) {
         streak++

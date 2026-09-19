@@ -1,5 +1,6 @@
 package com.jaspermsnbk.habit_tracker.ui
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
@@ -21,6 +22,7 @@ import com.jaspermsnbk.habit_tracker.data.testPreferences
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -35,13 +37,14 @@ class CalendarScreenTest {
     val composeRule = createComposeRule()
 
     private lateinit var db: HabitDatabase
+    private lateinit var repository: HabitRepository
     private val today = LocalDate.now()
     private val todayLabel = today.format(DAY_FORMAT)
 
     @Before
     fun setUp() {
         db = inMemoryDatabase()
-        val repository = HabitRepository(db.habitDao())
+        repository = HabitRepository(db.habitDao())
         runBlocking {
             repository.addHabit("Read", "#2E7D32")
             repository.addHabit("Run", "#1565C0")
@@ -119,6 +122,35 @@ class CalendarScreenTest {
         composeRule.onNodeWithText(day.format(SHEET_DATE_FORMAT)).assertIsDisplayed()
         composeRule.onNodeWithText("Nothing completed").assertIsDisplayed()
         composeRule.onNodeWithTag(DAY_HABITS_LIST_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun missedPastDay_withNoFreezeAvailable_offersNoFreezeButton() {
+        val day = YearMonth.now().minusMonths(1).atDay(15)
+        composeRule.onNodeWithContentDescription("Previous month").performClick()
+
+        composeRule.onNodeWithContentDescription("${day.format(DAY_FORMAT)}, nothing completed").performClick()
+
+        composeRule.onNodeWithText("Missed").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Freeze").assertCountEquals(0)
+    }
+
+    @Test
+    fun missedPastDay_withAFreezeAvailable_canBeFrozen() {
+        val runId = runBlocking { repository.habits.first().first { it.name == "Run" }.id }
+        runBlocking { db.habitDao().updateFreezeState(runId, freezes = 1, milestone = 0) }
+        val day = YearMonth.now().minusMonths(1).atDay(15)
+        composeRule.onNodeWithContentDescription("Previous month").performClick()
+        composeRule.onNodeWithContentDescription("${day.format(DAY_FORMAT)}, nothing completed").performClick()
+
+        composeRule.onNodeWithText("Freeze").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            runBlocking { repository.habits.first().first { it.name == "Run" }.frozenDates.isNotEmpty() }
+        }
+        val run = runBlocking { repository.habits.first().first { it.name == "Run" } }
+        assertEquals(setOf(day), run.frozenDates)
+        assertEquals(0, run.freezesAvailable)
     }
 
     @Test

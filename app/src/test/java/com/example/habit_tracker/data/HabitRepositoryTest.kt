@@ -222,4 +222,94 @@ class HabitRepositoryTest {
         assertTrue(repository.habits.first().isEmpty())
         assertTrue(repository.labels.first().isEmpty())
     }
+
+    @Test
+    fun addHabit_storesEmoji_andUpdateHabitChangesIt() = runBlocking {
+        repository.addHabit("Read", "#2E7D32", emoji = "📚")
+        val habit = repository.habits.first().single()
+        assertEquals("📚", habit.emoji)
+
+        repository.updateHabit(habit.id, habit.name, habit.color, habit.labelId, emoji = "✍️")
+
+        assertEquals("✍️", repository.habits.first().single().emoji)
+    }
+
+    @Test
+    fun sevenDayStreak_earnsAFreeze() = runBlocking {
+        repository.addHabit("Read", "#2E7D32")
+        val id = repository.habits.first().single().id
+        val today = LocalDate.now()
+        (1..6).forEach { offset ->
+            db.habitDao().insertEntry(
+                HabitEntryEntity(UUID.randomUUID().toString(), id, today.minusDays(offset.toLong()), Instant.now())
+            )
+        }
+
+        repository.toggleToday(id)
+
+        val habit = repository.habits.first().single()
+        assertEquals(7, habit.currentStreak)
+        assertEquals(1, habit.freezesAvailable)
+    }
+
+    @Test
+    fun togglingOffAndOnAtSevenDays_doesNotDoubleAwardAFreeze() = runBlocking {
+        repository.addHabit("Read", "#2E7D32")
+        val id = repository.habits.first().single().id
+        val today = LocalDate.now()
+        (1..6).forEach { offset ->
+            db.habitDao().insertEntry(
+                HabitEntryEntity(UUID.randomUUID().toString(), id, today.minusDays(offset.toLong()), Instant.now())
+            )
+        }
+
+        repository.toggleToday(id) // on: 7-day streak, earns a freeze
+        repository.toggleToday(id) // off
+        repository.toggleToday(id) // on again
+
+        assertEquals(1, repository.habits.first().single().freezesAvailable)
+    }
+
+    @Test
+    fun useFreeze_protectsAMissedDay_andBridgesTheStreak() = runBlocking {
+        repository.addHabit("Read", "#2E7D32")
+        val id = repository.habits.first().single().id
+        val today = LocalDate.now()
+        // Day -2 and today are done; day -1 (yesterday) is missed.
+        db.habitDao().insertEntry(HabitEntryEntity(UUID.randomUUID().toString(), id, today.minusDays(2), Instant.now()))
+        db.habitDao().updateFreezeState(id, freezes = 1, milestone = 0)
+        repository.toggleToday(id)
+        assertEquals(1, repository.habits.first().single().currentStreak)
+
+        repository.useFreeze(id, today.minusDays(1))
+
+        val habit = repository.habits.first().single()
+        assertEquals(3, habit.currentStreak)
+        assertEquals(setOf(today.minusDays(1)), habit.frozenDates)
+        assertEquals(0, habit.freezesAvailable)
+    }
+
+    @Test
+    fun useFreeze_isANoOpWithoutASpareFreeze() = runBlocking {
+        repository.addHabit("Read", "#2E7D32")
+        val id = repository.habits.first().single().id
+
+        repository.useFreeze(id, LocalDate.now().minusDays(1))
+
+        assertTrue(repository.habits.first().single().frozenDates.isEmpty())
+    }
+
+    @Test
+    fun deleteAllData_alsoWipesFreezes() = runBlocking {
+        repository.addHabit("Read", "#2E7D32")
+        val id = repository.habits.first().single().id
+        db.habitDao().updateFreezeState(id, freezes = 1, milestone = 0)
+        repository.useFreeze(id, LocalDate.now().minusDays(1))
+        assertTrue(repository.habits.first().single().frozenDates.isNotEmpty())
+
+        repository.deleteAllData()
+
+        assertTrue(repository.habits.first().isEmpty())
+        assertTrue(db.habitDao().observeFreezes().first().isEmpty())
+    }
 }

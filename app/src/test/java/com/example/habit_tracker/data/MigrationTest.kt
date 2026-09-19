@@ -78,6 +78,52 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migrate2To3_keepsExistingData_andSupportsEmojiAndFreezes() = runBlocking {
+        createVersion2Database()
+
+        val db = Room.databaseBuilder(context, HabitDatabase::class.java, DB_NAME)
+            .addMigrations(MIGRATION_2_3)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            val dao = db.habitDao()
+
+            val habit = dao.observeHabits().first().single()
+            assertEquals("Read", habit.name)
+            assertNull(habit.emoji)
+            assertEquals(0, habit.freezesAvailable)
+            assertEquals(0, habit.freezeMilestone)
+            assertEquals(LocalDate.ofEpochDay(20_000), dao.observeAllEntries().first().single().date)
+
+            dao.updateFreezeState(habit.id, freezes = 2, milestone = 7)
+            assertEquals(2, dao.getHabit(habit.id)?.freezesAvailable)
+
+            dao.insertFreeze(
+                HabitFreezeEntity(java.util.UUID.randomUUID().toString(), habit.id, LocalDate.ofEpochDay(20_010), java.time.Instant.now())
+            )
+            assertEquals(LocalDate.ofEpochDay(20_010), dao.freezeDatesFor(habit.id).single())
+        } finally {
+            db.close()
+        }
+    }
+
+    /** Recreates the database exactly as Room version 2 of the app left it, with one habit, one label-capable schema, and one entry. */
+    private fun createVersion2Database() {
+        val file = context.getDatabasePath(DB_NAME).apply { parentFile?.mkdirs() }
+        SQLiteDatabase.openOrCreateDatabase(file, null).use { db ->
+            VERSION_2_SCHEMA.forEach(db::execSQL)
+            db.execSQL(
+                "INSERT INTO habits (id, name, color, archived, createdAt, updatedAt, labelId) " +
+                    "VALUES ('h1', 'Read', '#2E7D32', 0, 0, 0, NULL)"
+            )
+            db.execSQL(
+                "INSERT INTO habit_entries (id, habitId, date, createdAt) VALUES ('e1', 'h1', 20000, 0)"
+            )
+            db.version = 2
+        }
+    }
+
     private companion object {
         const val DB_NAME = "migration-test.db"
 
@@ -89,6 +135,18 @@ class MigrationTest {
             "CREATE INDEX IF NOT EXISTS `index_habit_entries_habitId` ON `habit_entries` (`habitId`)",
             "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
             "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'adef16d81269d09644efd31932296bf4')",
+        )
+
+        /** Copied from Room's generated HabitDatabase_Impl for schema version 2 (labels added). */
+        val VERSION_2_SCHEMA = listOf(
+            "CREATE TABLE IF NOT EXISTS `habits` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `color` TEXT NOT NULL, `archived` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `labelId` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`labelId`) REFERENCES `labels`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+            "CREATE INDEX IF NOT EXISTS `index_habits_labelId` ON `habits` (`labelId`)",
+            "CREATE TABLE IF NOT EXISTS `habit_entries` (`id` TEXT NOT NULL, `habitId` TEXT NOT NULL, `date` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`habitId`) REFERENCES `habits`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_habit_entries_habitId_date` ON `habit_entries` (`habitId`, `date`)",
+            "CREATE INDEX IF NOT EXISTS `index_habit_entries_habitId` ON `habit_entries` (`habitId`)",
+            "CREATE TABLE IF NOT EXISTS `labels` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+            "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+            "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b3f26aa073c4b511f2f8beb1d2a1e444')",
         )
     }
 }
