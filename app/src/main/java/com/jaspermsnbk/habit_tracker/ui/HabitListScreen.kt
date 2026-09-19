@@ -29,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.AcUnit
 import androidx.compose.material.icons.outlined.AddTask
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.LocalFireDepartment
@@ -136,8 +137,8 @@ fun HabitListScreen(
             labels = labels,
             initialLabelId = selectedLabel?.id,
             onDismiss = { showAddDialog = false },
-            onConfirm = { name, color, labelId ->
-                viewModel.addHabit(name, color, labelId)
+            onConfirm = { name, color, labelId, emoji ->
+                viewModel.addHabit(name, color, labelId, emoji)
                 showAddDialog = false
             },
         )
@@ -151,10 +152,11 @@ fun HabitListScreen(
             labels = labels,
             initialName = habit.name,
             initialColor = habit.color,
+            initialEmoji = habit.emoji,
             initialLabelId = habit.labelId,
             onDismiss = { editingId = null },
-            onConfirm = { name, color, labelId ->
-                viewModel.updateHabit(habit.id, name, color, labelId)
+            onConfirm = { name, color, labelId, emoji ->
+                viewModel.updateHabit(habit.id, name, color, labelId, emoji)
                 editingId = null
             },
         )
@@ -307,6 +309,10 @@ private fun HabitCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    habit.emoji?.let { emoji ->
+                        Text(emoji, style = MaterialTheme.typography.titleMedium)
+                        Spacer(Modifier.width(6.dp))
+                    }
                     Text(
                         habit.name,
                         style = MaterialTheme.typography.titleMedium,
@@ -321,9 +327,9 @@ private fun HabitCard(
                     }
                 }
                 Spacer(Modifier.size(4.dp))
-                StreakRow(streak = habit.currentStreak)
+                StreakRow(streak = habit.currentStreak, freezesAvailable = habit.freezesAvailable)
                 Spacer(Modifier.size(8.dp))
-                WeekRow(last7 = habit.last7, accent = accent)
+                WeekRow(last7 = habit.last7, last7Frozen = habit.last7Frozen, accent = accent)
             }
 
             IconButton(onClick = onDelete) {
@@ -375,7 +381,7 @@ private fun DoneToggle(done: Boolean, accent: Color, onClick: () -> Unit) {
 }
 
 @Composable
-private fun StreakRow(streak: Int) {
+private fun StreakRow(streak: Int, freezesAvailable: Int) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             Icons.Outlined.LocalFireDepartment,
@@ -389,25 +395,48 @@ private fun StreakRow(streak: Int) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (freezesAvailable > 0) {
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                Icons.Outlined.AcUnit,
+                contentDescription = null,
+                tint = FREEZE_COLOR,
+                modifier = Modifier.size(14.dp),
+            )
+            Spacer(Modifier.width(2.dp))
+            Text(
+                "$freezesAvailable",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
-/** Seven dots for the last week; filled = completed that day, last dot = today. */
+/** Seven dots for the last week; filled = completed, icy = protected by a freeze, last dot = today. */
 @Composable
-private fun WeekRow(last7: List<Boolean>, accent: Color) {
+private fun WeekRow(last7: List<Boolean>, last7Frozen: List<Boolean>, accent: Color) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        last7.forEach { done ->
+        last7.forEachIndexed { index, done ->
+            val frozen = last7Frozen.getOrElse(index) { false }
             Box(
                 modifier = Modifier
                     .size(14.dp)
                     .background(
-                        color = if (done) accent else MaterialTheme.colorScheme.surfaceVariant,
+                        color = when {
+                            done -> accent
+                            frozen -> FREEZE_COLOR
+                            else -> MaterialTheme.colorScheme.surfaceVariant
+                        },
                         shape = CircleShape,
                     )
             )
         }
     }
 }
+
+/** A fixed icy blue for frozen-day indicators, readable against both light and dark surfaces. */
+internal val FREEZE_COLOR = Color(0xFF4FC3F7)
 
 /** Parse a "#RRGGBB" string; fall back to a neutral color if malformed. */
 internal fun parseColor(hex: String): Color =

@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.LocalTime
 
 /**
@@ -57,8 +58,8 @@ class HabitViewModel(
 
     fun setReminderTime(time: LocalTime) = preferencesStore.setReminderTime(time)
 
-    fun addHabit(name: String, color: String, labelId: String? = null) = viewModelScope.launch {
-        repository.addHabit(name, color, labelId)
+    fun addHabit(name: String, color: String, labelId: String? = null, emoji: String? = null) = viewModelScope.launch {
+        repository.addHabit(name, color, labelId, emoji)
     }
 
     fun addLabel(name: String) = viewModelScope.launch {
@@ -77,12 +78,17 @@ class HabitViewModel(
         repository.toggleToday(habitId)
     }
 
-    fun updateHabit(habitId: String, name: String, color: String, labelId: String?) = viewModelScope.launch {
-        repository.updateHabit(habitId, name, color, labelId)
-    }
+    fun updateHabit(habitId: String, name: String, color: String, labelId: String?, emoji: String? = null) =
+        viewModelScope.launch {
+            repository.updateHabit(habitId, name, color, labelId, emoji)
+        }
 
     fun deleteHabit(habitId: String) = viewModelScope.launch {
         repository.deleteHabit(habitId)
+    }
+
+    fun useFreeze(habitId: String, date: LocalDate) = viewModelScope.launch {
+        repository.useFreeze(habitId, date)
     }
 
     fun deleteAllData() = viewModelScope.launch {

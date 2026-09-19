@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Habit Tracker</string>
+    <string name="habit_widget_label">Today\'s Habits</string>
 </resources>

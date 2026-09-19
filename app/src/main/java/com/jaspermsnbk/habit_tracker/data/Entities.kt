@@ -11,6 +11,11 @@ import java.time.LocalDate
  * A habit the user is tracking. `id` is a UUID string so it can match the
  * server's id later (Phase 3+). `archived` is a soft-delete flag. `labelId`
  * optionally groups the habit under a [LabelEntity]; deleting the label just clears it.
+ *
+ * @param emoji an optional single emoji shown instead of the color dot
+ * @param freezesAvailable streak freezes earned but not yet spent, capped at [MAX_HABIT_FREEZES]
+ * @param freezeMilestone the longest current-streak length already rewarded with a freeze, so the
+ *   same 7-day mark can't be farmed by toggling today's entry on and off
  */
 @Entity(
     tableName = "habits",
@@ -32,6 +37,35 @@ data class HabitEntity(
     val createdAt: Instant,
     val updatedAt: Instant,
     val labelId: String? = null,
+    val emoji: String? = null,
+    val freezesAvailable: Int = 0,
+    val freezeMilestone: Int = 0,
+)
+
+/**
+ * A day a habit's streak was protected by a freeze instead of an actual completion.
+ * The unique (habitId, date) index mirrors [HabitEntryEntity]: a day is frozen at most once.
+ */
+@Entity(
+    tableName = "habit_freezes",
+    foreignKeys = [
+        ForeignKey(
+            entity = HabitEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["habitId"],
+            onDelete = ForeignKey.CASCADE,
+        )
+    ],
+    indices = [
+        Index(value = ["habitId", "date"], unique = true),
+        Index(value = ["habitId"]),
+    ],
+)
+data class HabitFreezeEntity(
+    @PrimaryKey val id: String,
+    val habitId: String,
+    val date: LocalDate,
+    val createdAt: Instant,
 )
 
 /**
