@@ -10,7 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [HabitEntity::class, HabitEntryEntity::class, LabelEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -29,7 +29,7 @@ abstract class HabitDatabase : RoomDatabase() {
                     context.applicationContext,
                     HabitDatabase::class.java,
                     "habits.db",
-                ).addMigrations(MIGRATION_1_2).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
             }
     }
 }
@@ -47,5 +47,12 @@ internal val MIGRATION_1_2 = object : Migration(1, 2) {
                 "REFERENCES `labels`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL"
         )
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_habits_labelId` ON `habits` (`labelId`)")
+    }
+}
+
+/** v3 adds a nullable `habits.emoji` shown on the habit card instead of the color dot. */
+internal val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `habits` ADD COLUMN `emoji` TEXT")
     }
 }

@@ -136,8 +136,8 @@ fun HabitListScreen(
             labels = labels,
             initialLabelId = selectedLabel?.id,
             onDismiss = { showAddDialog = false },
-            onConfirm = { name, color, labelId ->
-                viewModel.addHabit(name, color, labelId)
+            onConfirm = { name, color, labelId, emoji ->
+                viewModel.addHabit(name, color, labelId, emoji)
                 showAddDialog = false
             },
         )
@@ -152,9 +152,10 @@ fun HabitListScreen(
             initialName = habit.name,
             initialColor = habit.color,
             initialLabelId = habit.labelId,
+            initialEmoji = habit.emoji,
             onDismiss = { editingId = null },
-            onConfirm = { name, color, labelId ->
-                viewModel.updateHabit(habit.id, name, color, labelId)
+            onConfirm = { name, color, labelId, emoji ->
+                viewModel.updateHabit(habit.id, name, color, labelId, emoji)
                 editingId = null
             },
         )
@@ -307,6 +308,10 @@ private fun HabitCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    habit.emoji?.let { emoji ->
+                        Text(emoji, style = MaterialTheme.typography.titleMedium)
+                        Spacer(Modifier.width(6.dp))
+                    }
                     Text(
                         habit.name,
                         style = MaterialTheme.typography.titleMedium,

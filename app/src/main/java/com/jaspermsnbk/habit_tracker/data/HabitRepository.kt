@@ -20,6 +20,7 @@ data class HabitUi(
     val id: String,
     val name: String,
     val color: String,
+    val emoji: String?,
     val doneToday: Boolean,
     val currentStreak: Int,
     val last7: List<Boolean>,
@@ -60,6 +61,7 @@ class HabitRepository(private val dao: HabitDao) {
                     id = habit.id,
                     name = habit.name,
                     color = habit.color,
+                    emoji = habit.emoji,
                     doneToday = today in dates,
                     currentStreak = currentStreak(dates, today),
                     last7 = (6 downTo 0).map { offset -> today.minusDays(offset.toLong()) in dates },
@@ -71,7 +73,7 @@ class HabitRepository(private val dao: HabitDao) {
             }
         }
 
-    suspend fun addHabit(name: String, color: String, labelId: String? = null) {
+    suspend fun addHabit(name: String, color: String, labelId: String? = null, emoji: String? = null) {
         val now = Instant.now()
         dao.upsertHabit(
             HabitEntity(
@@ -81,6 +83,7 @@ class HabitRepository(private val dao: HabitDao) {
                 createdAt = now,
                 updatedAt = now,
                 labelId = labelId,
+                emoji = emoji,
             )
         )
     }
@@ -142,10 +145,16 @@ class HabitRepository(private val dao: HabitDao) {
      * Changes a habit's name, color and label. Its check-ins, streaks and start date stay as they are.
      * @return whether the habit was updated; a blank name is rejected
      */
-    suspend fun updateHabit(habitId: String, name: String, color: String, labelId: String?): Boolean {
+    suspend fun updateHabit(
+        habitId: String,
+        name: String,
+        color: String,
+        labelId: String?,
+        emoji: String? = null,
+    ): Boolean {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return false
-        dao.updateHabit(habitId, trimmed, color, labelId, Instant.now())
+        dao.updateHabit(habitId, trimmed, color, labelId, emoji, Instant.now())
         return true
     }
 

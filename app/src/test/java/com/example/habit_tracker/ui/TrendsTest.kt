@@ -14,6 +14,7 @@ class TrendsTest {
         id = name,
         name = name,
         color = "#000000",
+        emoji = null,
         doneToday = 0L in doneDaysAgo,
         currentStreak = 0,
         last7 = List(7) { false },

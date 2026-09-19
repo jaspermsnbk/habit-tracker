@@ -207,6 +207,18 @@ class HabitRepositoryTest {
     }
 
     @Test
+    fun addHabit_storesAndSurfacesEmoji_andUpdateHabit_changesIt() = runBlocking {
+        repository.addHabit("Read", "#2E7D32", emoji = "📚")
+
+        val added = repository.habits.first().single()
+        assertEquals("📚", added.emoji)
+
+        assertTrue(repository.updateHabit(added.id, added.name, added.color, added.labelId, "✍️"))
+
+        assertEquals("✍️", repository.habits.first().single().emoji)
+    }
+
+    @Test
     fun deleteAllData_wipesHabitsEntriesAndLabels_includingArchived() = runBlocking {
         repository.addLabel("Fitness")
         val label = repository.labels.first().single()

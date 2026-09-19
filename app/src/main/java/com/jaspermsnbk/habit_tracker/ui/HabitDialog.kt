@@ -50,12 +50,16 @@ private val PRESET_COLORS = listOf(
     PresetColor("#00838F", "Teal"),
 )
 
+/** Preset emojis the user can tag a habit with. */
+private val PRESET_EMOJIS = listOf("💪", "🏃", "🧘", "📚", "✍️", "💧", "🥗", "😴", "🎨", "🎯", "🧹", "🚭")
+
 /**
  * Dialog for a habit's name, color and label, used both to add a habit and to edit one.
  *
  * @param labels labels the habit can be filed under
  * @param initialColor preselected color; if it isn't a preset, it's kept unless another is picked
  * @param initialLabelId label to preselect: the habit's own, or the one the list is filtered by
+ * @param initialEmoji preselected emoji: the habit's own, or null for none
  */
 @Composable
 fun HabitDialog(
@@ -63,14 +67,16 @@ fun HabitDialog(
     confirmText: String,
     labels: List<LabelUi>,
     onDismiss: () -> Unit,
-    onConfirm: (name: String, color: String, labelId: String?) -> Unit,
+    onConfirm: (name: String, color: String, labelId: String?, emoji: String?) -> Unit,
     initialName: String = "",
     initialColor: String = PRESET_COLORS.first().hex,
     initialLabelId: String? = null,
+    initialEmoji: String? = null,
 ) {
     var name by rememberSaveable { mutableStateOf(initialName) }
     var selectedColor by rememberSaveable { mutableStateOf(initialColor) }
     var selectedLabelId by rememberSaveable { mutableStateOf(initialLabelId) }
+    var selectedEmoji by rememberSaveable { mutableStateOf(initialEmoji) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -98,6 +104,26 @@ fun HabitDialog(
                             preset = preset,
                             selected = preset.hex.equals(selectedColor, ignoreCase = true),
                             onClick = { selectedColor = preset.hex },
+                        )
+                    }
+                }
+                Spacer(Modifier.size(16.dp))
+                Text("Emoji")
+                Spacer(Modifier.size(8.dp))
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FilterChip(
+                        selected = selectedEmoji == null,
+                        onClick = { selectedEmoji = null },
+                        label = { Text("No emoji") },
+                    )
+                    PRESET_EMOJIS.forEach { emoji ->
+                        FilterChip(
+                            selected = selectedEmoji == emoji,
+                            onClick = { selectedEmoji = emoji },
+                            label = { Text(emoji) },
                         )
                     }
                 }
@@ -135,7 +161,12 @@ fun HabitDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    onConfirm(name, selectedColor, selectedLabelId?.takeIf { id -> labels.any { it.id == id } })
+                    onConfirm(
+                        name,
+                        selectedColor,
+                        selectedLabelId?.takeIf { id -> labels.any { it.id == id } },
+                        selectedEmoji,
+                    )
                 },
                 enabled = name.isNotBlank(),
             ) { Text(confirmText) }

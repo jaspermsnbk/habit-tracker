@@ -105,6 +105,18 @@ class HabitListScreenEditTest {
     }
 
     @Test
+    fun selectingEmoji_savesAndRendersItOnTheCard() {
+        openEditor()
+        composeRule.onNode(inDialog("📚")).performClick()
+        composeRule.onNode(saveButton).performClick()
+
+        waitFor(hasText("📚"))
+        composeRule.onNodeWithText("Edit habit").assertDoesNotExist()
+        composeRule.onNodeWithText("📚").assertIsDisplayed()
+        assertEquals("📚", habit().emoji)
+    }
+
+    @Test
     fun blankName_cannotBeSaved() {
         openEditor()
 

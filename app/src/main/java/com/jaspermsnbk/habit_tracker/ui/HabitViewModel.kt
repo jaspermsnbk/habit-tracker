@@ -57,8 +57,8 @@ class HabitViewModel(
 
     fun setReminderTime(time: LocalTime) = preferencesStore.setReminderTime(time)
 
-    fun addHabit(name: String, color: String, labelId: String? = null) = viewModelScope.launch {
-        repository.addHabit(name, color, labelId)
+    fun addHabit(name: String, color: String, labelId: String? = null, emoji: String? = null) = viewModelScope.launch {
+        repository.addHabit(name, color, labelId, emoji)
     }
 
     fun addLabel(name: String) = viewModelScope.launch {
@@ -77,8 +77,14 @@ class HabitViewModel(
         repository.toggleToday(habitId)
     }
 
-    fun updateHabit(habitId: String, name: String, color: String, labelId: String?) = viewModelScope.launch {
-        repository.updateHabit(habitId, name, color, labelId)
+    fun updateHabit(
+        habitId: String,
+        name: String,
+        color: String,
+        labelId: String?,
+        emoji: String? = null,
+    ) = viewModelScope.launch {
+        repository.updateHabit(habitId, name, color, labelId, emoji)
     }
 
     fun deleteHabit(habitId: String) = viewModelScope.launch {

@@ -32,6 +32,7 @@ data class HabitEntity(
     val createdAt: Instant,
     val updatedAt: Instant,
     val labelId: String? = null,
+    val emoji: String? = null,
 )
 
 /**

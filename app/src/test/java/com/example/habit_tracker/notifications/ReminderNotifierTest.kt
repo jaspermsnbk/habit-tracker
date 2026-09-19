@@ -25,6 +25,7 @@ class ReminderNotifierTest {
         id = name,
         name = name,
         color = "#2E7D32",
+        emoji = null,
         doneToday = false,
         currentStreak = streak,
         last7 = List(7) { false },
