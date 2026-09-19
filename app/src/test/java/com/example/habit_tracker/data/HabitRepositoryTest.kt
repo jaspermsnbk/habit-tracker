@@ -205,4 +205,21 @@ class HabitRepositoryTest {
         assertEquals("Read", repository.habits.first().single().name)
         assertEquals("#2E7D32", repository.habits.first().single().color)
     }
+
+    @Test
+    fun deleteAllData_wipesHabitsEntriesAndLabels_includingArchived() = runBlocking {
+        repository.addLabel("Fitness")
+        val label = repository.labels.first().single()
+        repository.addHabit("Run", "#2E7D32", label.id)
+        repository.addHabit("Read", "#1565C0")
+        val run = repository.habits.first().first { it.name == "Run" }
+        val read = repository.habits.first().first { it.name == "Read" }
+        repository.toggleToday(run.id)
+        repository.deleteHabit(read.id)
+
+        repository.deleteAllData()
+
+        assertTrue(repository.habits.first().isEmpty())
+        assertTrue(repository.labels.first().isEmpty())
+    }
 }

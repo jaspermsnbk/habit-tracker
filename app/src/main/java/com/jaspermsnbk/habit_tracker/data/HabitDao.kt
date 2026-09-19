@@ -56,4 +56,13 @@ interface HabitDao {
     /** The foreign key on `habits.labelId` clears the label from its habits. */
     @Query("DELETE FROM labels WHERE id = :id")
     suspend fun deleteLabel(id: String)
+
+    @Query("DELETE FROM habits")
+    suspend fun deleteAllHabits()
+
+    @Query("DELETE FROM habit_entries")
+    suspend fun deleteAllEntries()
+
+    @Query("DELETE FROM labels")
+    suspend fun deleteAllLabels()
 }

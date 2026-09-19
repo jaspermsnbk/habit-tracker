@@ -85,6 +85,10 @@ class HabitViewModel(
         repository.deleteHabit(habitId)
     }
 
+    fun deleteAllData() = viewModelScope.launch {
+        repository.deleteAllData()
+    }
+
     companion object {
         /** Builds the ViewModel with the repository pulled from the Application. */
         val Factory: ViewModelProvider.Factory = viewModelFactory {
