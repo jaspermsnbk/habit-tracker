@@ -26,6 +26,18 @@
             </intent-filter>
         </activity>
 
+        <!-- Asks which label a widget shows. Launched by the launcher when the widget is placed
+             and whenever it is reconfigured, so it has to be exported. -->
+        <activity
+            android:name=".widget.HabitWidgetConfigActivity"
+            android:exported="true"
+            android:label="@string/habit_widget_label"
+            android:theme="@style/Theme.Habittracker2">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <!-- Fired by the reminder alarm (an explicit intent), and by the system events that clear or
              shift alarms. System broadcasts reach it even though it isn't exported. -->
         <receiver

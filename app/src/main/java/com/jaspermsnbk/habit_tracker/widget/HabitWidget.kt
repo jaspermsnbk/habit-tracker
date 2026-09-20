@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
@@ -26,6 +27,7 @@ import androidx.glance.appwidget.lazy.LazyColumn
 import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
+import androidx.glance.currentState
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
@@ -37,6 +39,7 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
+import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -45,6 +48,9 @@ import com.jaspermsnbk.habit_tracker.HabitApplication
 import com.jaspermsnbk.habit_tracker.MainActivity
 import com.jaspermsnbk.habit_tracker.R
 import com.jaspermsnbk.habit_tracker.data.HabitUi
+
+/** The label a widget instance was configured with; absent means "all labels". */
+internal val widgetLabelIdKey = stringPreferencesKey("widget_label_id")
 
 /**
  * Home screen widget listing today's habits, each checkable in place.
@@ -61,6 +67,9 @@ object HabitWidget : GlanceAppWidget() {
     /** The list is scrollable, so draw to whatever size the user resized the widget to. */
     override val sizeMode = SizeMode.Exact
 
+    /** Per instance, so two widgets can show different labels. Written by the config activity. */
+    override val stateDefinition = PreferencesGlanceStateDefinition
+
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val repository = (context.applicationContext as HabitApplication).repository
 
@@ -68,6 +77,13 @@ object HabitWidget : GlanceAppWidget() {
             // Collected inside the composition, so while the widget is on screen it follows the
             // database instead of showing the snapshot it was drawn with.
             val habits by repository.habits.collectAsState(initial = emptyList())
+            val labels by repository.labels.collectAsState(initial = emptyList())
+
+            // A label that has since been deleted filters nothing, rather than emptying the widget.
+            val label = currentState(widgetLabelIdKey)?.let { labelId ->
+                labels.find { it.id == labelId }
+            }
+            val visible = if (label == null) habits else habits.filter { it.labelId == label.id }
 
             GlanceTheme {
                 Column(
@@ -80,13 +96,17 @@ object HabitWidget : GlanceAppWidget() {
                         .cornerRadius(16.dp)
                         .padding(12.dp),
                 ) {
-                    Header(done = habits.count { it.doneToday }, total = habits.size)
+                    Header(
+                        labelName = label?.name,
+                        done = visible.count { it.doneToday },
+                        total = visible.size,
+                    )
                     Spacer(GlanceModifier.height(10.dp))
-                    if (habits.isEmpty()) {
-                        EmptyState()
-                    } else {
-                        LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
-                            items(habits, itemId = { it.id.hashCode().toLong() }) { habit ->
+                    when {
+                        habits.isEmpty() -> EmptyState("No habits yet.\nTap to add your first one.")
+                        visible.isEmpty() -> EmptyState("No habits with this label yet.")
+                        else -> LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
+                            items(visible, itemId = { it.id.hashCode().toLong() }) { habit ->
                                 HabitCard(habit)
                             }
                         }
@@ -97,9 +117,9 @@ object HabitWidget : GlanceAppWidget() {
     }
 }
 
-/** Title plus today's progress, standing in for the app's "Habits" top bar. */
+/** Title, the label this widget is filtered to, and today's progress. */
 @Composable
-private fun Header(done: Int, total: Int) {
+private fun Header(labelName: String?, done: Int, total: Int) {
     Row(
         modifier = GlanceModifier.fillMaxWidth().clickable(actionStartActivity<MainActivity>()),
         verticalAlignment = Alignment.Vertical.CenterVertically,
@@ -111,8 +131,12 @@ private fun Header(done: Int, total: Int) {
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
             ),
-            modifier = GlanceModifier.defaultWeight(),
         )
+        labelName?.let {
+            Spacer(GlanceModifier.width(6.dp))
+            LabelPill(it)
+        }
+        Spacer(GlanceModifier.defaultWeight())
         if (total > 0) {
             Text(
                 text = "$done of $total",
@@ -156,6 +180,8 @@ private fun HabitCard(habit: HabitUi) {
                             fontWeight = FontWeight.Bold,
                         ),
                         maxLines = 1,
+                        // Keeps a long name from pushing the label pill out of the row.
+                        modifier = GlanceModifier.defaultWeight(),
                     )
                     habit.labelName?.let { labelName ->
                         Spacer(GlanceModifier.width(6.dp))
@@ -202,7 +228,7 @@ private fun DoneToggle(habit: HabitUi, accent: Color) {
     }
 }
 
-/** The habit's label, as the app's rounded secondary-container pill. */
+/** A label, as the app's rounded secondary-container pill. */
 @Composable
 private fun LabelPill(name: String) {
     Text(
@@ -235,13 +261,13 @@ private fun WeekRow(last7: List<Boolean>, accent: Color) {
 }
 
 @Composable
-private fun EmptyState() {
+private fun EmptyState(message: String) {
     Box(
         modifier = GlanceModifier.fillMaxSize().clickable(actionStartActivity<MainActivity>()),
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = "No habits yet.\nTap to add your first one.",
+            text = message,
             style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp),
         )
     }
