@@ -55,7 +55,7 @@ class TrendsLabelFilterTest {
         }
 
         val viewModel = HabitViewModel(repository, testPreferences())
-        composeRule.setContent { TrendsScreen(viewModel) }
+        composeRule.setContent { ProfileScreen(viewModel) }
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule.onAllNodes(hasText("3") and hasText("Check-ins")).fetchSemanticsNodes().isNotEmpty()
         }

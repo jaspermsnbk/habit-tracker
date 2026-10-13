@@ -88,11 +88,11 @@ class MainActivityTest {
     }
 
     @Test
-    fun navigationBar_opensTrends() {
+    fun navigationBar_opensProfile_withTheTrends() {
         app.sessionStore.continueAsGuest()
 
         ActivityScenario.launch(MainActivity::class.java).use {
-            composeRule.onNode(hasText("Trends") and hasClickAction()).performClick()
+            composeRule.onNode(hasText("Profile") and hasClickAction()).performClick()
 
             composeRule.onNodeWithText("Add a habit to see your trends here.").assertIsDisplayed()
             composeRule.onNodeWithContentDescription("Add").assertDoesNotExist()
@@ -123,7 +123,7 @@ class MainActivityTest {
         app.sessionStore.continueAsGuest()
 
         ActivityScenario.launch(MainActivity::class.java).use {
-            listOf("Habits", "Calendar", "Trends").forEach { tab ->
+            listOf("Habits", "Calendar", "Profile").forEach { tab ->
                 composeRule.onNode(hasText(tab) and hasClickAction()).performClick()
                 composeRule.onNodeWithContentDescription("Settings").assertIsDisplayed()
             }
@@ -150,7 +150,7 @@ class MainActivityTest {
         runBlocking { app.repository.addHabit("Read", "#2E7D32") }
 
         ActivityScenario.launch(MainActivity::class.java).use {
-            composeRule.onNode(hasText("Trends") and hasClickAction()).performClick()
+            composeRule.onNode(hasText("Profile") and hasClickAction()).performClick()
             composeRule.onNodeWithText("1Y").performClick()
             composeRule.onNodeWithText("Check-ins per week").assertExists()
 
@@ -160,7 +160,7 @@ class MainActivityTest {
             composeRule.onNodeWithText("Check-ins per week").assertExists()
 
             composeRule.onNode(hasText("Habits") and hasClickAction()).performClick()
-            composeRule.onNode(hasText("Trends") and hasClickAction()).performClick()
+            composeRule.onNode(hasText("Profile") and hasClickAction()).performClick()
 
             composeRule.onNodeWithText("Check-ins per week").assertExists()
         }
@@ -196,7 +196,7 @@ class MainActivityTest {
         app.sessionStore.continueAsGuest()
 
         ActivityScenario.launch(MainActivity::class.java).use {
-            listOf("Habits", "Pet", "Calendar", "Trends", "Admin").forEach { tab ->
+            listOf("Habits", "Pet", "Calendar", "Profile", "Admin").forEach { tab ->
                 composeRule.onNode(hasText(tab) and hasClickAction()).performClick()
                 composeRule.onNodeWithContentDescription("How it works").performClick()
 

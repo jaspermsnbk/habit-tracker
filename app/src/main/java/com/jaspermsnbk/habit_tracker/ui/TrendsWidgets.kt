@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -51,6 +52,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -67,16 +69,13 @@ internal const val TREND_CHART_TAG = "trendChart"
 private val SHORT_DAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d")
 
 /**
- * Completion history over a chosen window: headline stats, a bar chart of check-ins per day or
- * week (tap or drag to inspect a bar), a weekday pattern, and a per-habit breakdown.
+ * Completion history over a chosen window, as a column of cards for the Profile tab to scroll through:
+ * the filters, headline stats, a bar chart of check-ins per day or week (tap or drag to inspect a bar),
+ * a weekday pattern, and a per-habit breakdown. Each card is its own function, so adding one is a new
+ * function and one line here.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TrendsScreen(
-    viewModel: HabitViewModel,
-    modifier: Modifier = Modifier,
-    onOpenSettings: () -> Unit = {},
-) {
+fun TrendsWidgets(viewModel: HabitViewModel, modifier: Modifier = Modifier) {
     val habits by viewModel.habits.collectAsState()
     val labels by viewModel.labels.collectAsState()
     val preferences by viewModel.preferences.collectAsState()
@@ -95,81 +94,75 @@ fun TrendsScreen(
     // The chart bar being inspected; bars mean something else once the range or selection changes.
     var inspected by rememberSaveable(range, selectedLabel?.id, selected?.id) { mutableStateOf<Int?>(null) }
 
-    Scaffold(
-        modifier = modifier,
-        topBar = { HabitTopBar("Trends", onOpenSettings) },
-    ) { innerPadding ->
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text("Trends", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
         if (habits.isEmpty()) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    "Add a habit to see your trends here.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            Text(
+                "Add a habit to see your trends here.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            return@Column
+        }
+        val accent = selected?.let { parseColor(it.color) } ?: MaterialTheme.colorScheme.primary
+
+        if (labels.isNotEmpty()) {
+            LabelFilter(
+                labels = labels,
+                selected = selectedLabel,
+                onSelect = {
+                    selectedLabelId = it
+                    selectedHabitId = null
+                },
+            )
+        }
+        if (labelHabits.isEmpty()) {
+            Text(
+                "No habits with this label yet.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            return@Column
+        }
+        HabitFilter(labelHabits, selected, onSelect = { selectedHabitId = it })
+        RangeSelector(range, onSelect = { range = it })
+        StatTiles(trends)
+
+        WidgetCard(if (range.bucketDays == 1) "Check-ins per day" else "Check-ins per week") {
+            InspectedBar(trends, range, inspected, today)
+            Spacer(Modifier.size(8.dp))
+            TrendChart(
+                trends = trends,
+                range = range,
+                barColor = accent,
+                inspected = inspected,
+                onTap = { i -> inspected = if (inspected == i) null else i },
+                onScrub = { i -> inspected = i },
+            )
+        }
+
+        // A week has one of each weekday, which the chart above already shows.
+        if (range != TrendRange.Week && trends.weekdayRates.isNotEmpty()) {
+            WidgetCard("By weekday") {
+                WeekdayPattern(trends.weekdayRates, accent, preferences.weekStart())
             }
-        } else {
-            val accent = selected?.let { parseColor(it.color) } ?: MaterialTheme.colorScheme.primary
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-            ) {
-                if (labels.isNotEmpty()) {
-                    LabelFilter(
-                        labels = labels,
-                        selected = selectedLabel,
-                        onSelect = {
-                            selectedLabelId = it
-                            selectedHabitId = null
-                        },
-                    )
-                    Spacer(Modifier.size(8.dp))
-                }
-                if (labelHabits.isEmpty()) {
-                    Spacer(Modifier.size(24.dp))
-                    Text(
-                        "No habits with this label yet.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    return@Column
-                }
-                HabitFilter(labelHabits, selected, onSelect = { selectedHabitId = it })
-                Spacer(Modifier.size(12.dp))
-                RangeSelector(range, onSelect = { range = it })
-                Spacer(Modifier.size(16.dp))
-                StatTiles(trends)
+        }
 
-                SectionTitle(if (range.bucketDays == 1) "Check-ins per day" else "Check-ins per week")
-                InspectedBar(trends, range, inspected, today)
-                Spacer(Modifier.size(8.dp))
-                TrendChart(
-                    trends = trends,
-                    range = range,
-                    barColor = accent,
-                    inspected = inspected,
-                    onTap = { i -> inspected = if (inspected == i) null else i },
-                    onScrub = { i -> inspected = i },
-                )
-
-                // A week has one of each weekday, which the chart above already shows.
-                if (range != TrendRange.Week && trends.weekdayRates.isNotEmpty()) {
-                    SectionTitle("By weekday")
-                    WeekdayPattern(trends.weekdayRates, accent, preferences.weekStart())
-                }
-
-                if (selected == null && labelHabits.size > 1) {
-                    SectionTitle("By habit")
-                    HabitBreakdown(trends.perHabit, onSelect = { selectedHabitId = it })
-                }
+        if (selected == null && labelHabits.size > 1) {
+            WidgetCard("By habit") {
+                HabitBreakdown(trends.perHabit, onSelect = { selectedHabitId = it })
             }
+        }
+    }
+}
+
+/** One scrollable card of the trends: a title and its content. */
+@Composable
+private fun WidgetCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+            content()
         }
     }
 }
@@ -249,13 +242,6 @@ private fun StatTile(
             }
         }
     }
-}
-
-@Composable
-private fun SectionTitle(text: String) {
-    Spacer(Modifier.size(24.dp))
-    Text(text, style = MaterialTheme.typography.titleMedium)
-    Spacer(Modifier.size(4.dp))
 }
 
 /** Details of the inspected bar, or the window's average with a hint when nothing is inspected. */

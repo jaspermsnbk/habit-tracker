@@ -64,7 +64,7 @@ class TrendsScreenTest {
         }
 
         val viewModel = HabitViewModel(repository, testPreferences())
-        composeRule.setContent { TrendsScreen(viewModel) }
+        composeRule.setContent { ProfileScreen(viewModel) }
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule.onAllNodesWithText("Run").fetchSemanticsNodes().isNotEmpty()
         }

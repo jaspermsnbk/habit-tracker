@@ -66,7 +66,7 @@ class PreferencesAppliedTest {
     fun trends_opensOnChosenRange() {
         preferences.setTrendsRange(TrendRange.Year.name)
 
-        composeRule.setContent { TrendsScreen(HabitViewModel(repository, preferences)) }
+        composeRule.setContent { ProfileScreen(HabitViewModel(repository, preferences)) }
 
         waitForText("Check-ins per week")
     }
