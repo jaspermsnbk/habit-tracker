@@ -1,5 +1,6 @@
 package com.jaspermsnbk.habit_tracker.ui
 
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.AccountCircle
@@ -20,11 +21,12 @@ val LocalOpenHelp = staticCompositionLocalOf<(() -> Unit)?> { null }
 /** The app bar shared by every tab, so the settings button sits in the same place on each. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HabitTopBar(title: String, onOpenSettings: () -> Unit) {
+fun HabitTopBar(title: String, onOpenSettings: () -> Unit, extraActions: @Composable RowScope.() -> Unit = {}) {
     val openHelp = LocalOpenHelp.current
     TopAppBar(
         title = { Text(title) },
         actions = {
+            extraActions()
             if (openHelp != null) {
                 IconButton(onClick = openHelp) {
                     Icon(Icons.AutoMirrored.Outlined.HelpOutline, contentDescription = "How it works")

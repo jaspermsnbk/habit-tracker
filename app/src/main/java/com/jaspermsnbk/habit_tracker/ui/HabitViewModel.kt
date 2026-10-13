@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.jaspermsnbk.habit_tracker.HabitApplication
 import com.jaspermsnbk.habit_tracker.data.AppPreferences
+import com.jaspermsnbk.habit_tracker.data.GemRepository
 import com.jaspermsnbk.habit_tracker.data.HabitRepository
 import com.jaspermsnbk.habit_tracker.data.HabitUi
 import com.jaspermsnbk.habit_tracker.data.LabelUi
@@ -27,6 +28,7 @@ import java.time.LocalTime
 class HabitViewModel(
     private val repository: HabitRepository,
     private val preferencesStore: PreferencesStore,
+    private val gemRepository: GemRepository? = null,
 ) : ViewModel() {
 
     val habits: StateFlow<List<HabitUi>> =
@@ -110,6 +112,7 @@ class HabitViewModel(
 
     fun deleteAllData() = viewModelScope.launch {
         repository.deleteAllData()
+        gemRepository?.deleteAll()
     }
 
     companion object {
@@ -117,7 +120,7 @@ class HabitViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as HabitApplication
-                HabitViewModel(app.repository, app.preferencesStore)
+                HabitViewModel(app.repository, app.preferencesStore, app.gemRepository)
             }
         }
     }

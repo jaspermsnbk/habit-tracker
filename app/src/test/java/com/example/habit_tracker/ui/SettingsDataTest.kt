@@ -57,7 +57,7 @@ class SettingsDataTest {
         composeRule.onNodeWithText("Delete all data").performScrollTo().performClick()
 
         composeRule.onNodeWithText("Delete all data?").assertIsDisplayed()
-        composeRule.onNodeWithText("All habits, completions and labels will be permanently deleted. This can't be undone.")
+        composeRule.onNodeWithText("All habits, completions, labels, your pet, gems and items will be permanently deleted. This can't be undone.")
             .assertIsDisplayed()
         assertTrue(runBlocking { repository.habits.first() }.isNotEmpty())
     }

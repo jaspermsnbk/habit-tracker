@@ -34,6 +34,9 @@ import androidx.compose.ui.unit.dp
 import com.jaspermsnbk.habit_tracker.data.FED_DAYS_PER_FREEZE
 import com.jaspermsnbk.habit_tracker.data.FED_DAYS_PER_LEVEL
 import com.jaspermsnbk.habit_tracker.data.MAX_LEVEL
+import com.jaspermsnbk.habit_tracker.data.REPEAT_EVERY_DAYS
+import com.jaspermsnbk.habit_tracker.data.REPEAT_GEMS
+import com.jaspermsnbk.habit_tracker.data.STREAK_MILESTONES
 import com.jaspermsnbk.habit_tracker.data.FED_DAY_HEALTH
 import com.jaspermsnbk.habit_tracker.data.FORGIVE_COOLDOWN_DAYS
 import com.jaspermsnbk.habit_tracker.data.MAX_FORGIVABLE_GAP_DAYS
@@ -58,6 +61,10 @@ internal class PetRulesCopy(
     val forgiveness: String = "Away for up to ${days(MAX_FORGIVABLE_GAP_DAYS)}? When you come back, a Welcome back card offers to " +
         "forgive the days you missed, which also brings back a pet that died while you were gone. " +
         "You can do this once every ${days(FORGIVE_COOLDOWN_DAYS.toInt())}.",
+    val gems: String = "Keep your pet fed day after day to earn gems: " +
+        STREAK_MILESTONES.joinToString(", ") { (days, gems) -> "$days days in a row pays $gems" } +
+        ", then $REPEAT_GEMS more every $REPEAT_EVERY_DAYS days. Only check-ins made on the day itself count. " +
+        "Spend gems in the Shop, the bag at the top of the Profile tab, on outfits for your pet.",
     val levelling: String = "A new pet is an egg until your first fed day. Every $FED_DAYS_PER_LEVEL fed days is a level, up to " +
         "level $MAX_LEVEL, and it grows into a new form along the way. Fed days are counted over its whole life, not just " +
         "the current streak, so a bad week can make your pet sad but never makes it smaller.",
@@ -130,6 +137,7 @@ fun HowItWorksScreen(firstRun: Boolean, onDone: () -> Unit, modifier: Modifier =
             Section("Freeze tokens", copy.freezes)
             Section("Coming back", copy.forgiveness)
             LevelSection(copy.levelling)
+            Section("Gems and the shop", copy.gems)
             Spacer(Modifier.height(8.dp))
         }
     }

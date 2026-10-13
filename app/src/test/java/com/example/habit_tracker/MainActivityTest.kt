@@ -239,4 +239,30 @@ class MainActivityTest {
             composeRule.onNodeWithText("Settings").assertIsDisplayed()
         }
     }
+
+    @Test
+    fun profileTab_hasAShopButton_thatOpensAPopUp() {
+        app.sessionStore.continueAsGuest()
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            composeRule.onNode(hasText("Profile") and hasClickAction()).performClick()
+            composeRule.onNodeWithText("Runner gear").assertDoesNotExist()
+
+            composeRule.onNodeWithContentDescription("Shop").performClick()
+
+            composeRule.onNodeWithText("Runner gear").assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun shopButton_isOnlyOnTheProfileTab() {
+        app.sessionStore.continueAsGuest()
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            listOf("Habits", "Pet", "Calendar", "Admin").forEach { tab ->
+                composeRule.onNode(hasText(tab) and hasClickAction()).performClick()
+                composeRule.onNodeWithContentDescription("Shop").assertDoesNotExist()
+            }
+        }
+    }
 }

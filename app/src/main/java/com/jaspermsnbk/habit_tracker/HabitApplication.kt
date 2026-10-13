@@ -2,8 +2,11 @@ package com.jaspermsnbk.habit_tracker
 
 import android.app.Application
 import androidx.glance.appwidget.updateAll
+import com.jaspermsnbk.habit_tracker.data.GemPurchaseProvider
+import com.jaspermsnbk.habit_tracker.data.GemRepository
 import com.jaspermsnbk.habit_tracker.data.HabitDatabase
 import com.jaspermsnbk.habit_tracker.data.HabitRepository
+import com.jaspermsnbk.habit_tracker.data.NoGemPurchases
 import com.jaspermsnbk.habit_tracker.data.PreferencesStore
 import com.jaspermsnbk.habit_tracker.data.SessionStore
 import com.jaspermsnbk.habit_tracker.notifications.ReminderNotifier
@@ -25,6 +28,13 @@ class HabitApplication : Application() {
         HabitRepository(HabitDatabase.get(this).habitDao())
     }
 
+    val gemRepository: GemRepository by lazy {
+        GemRepository(HabitDatabase.get(this).gemDao())
+    }
+
+    /** Where gems can be bought with money. Nowhere yet; a Play Billing version replaces this. */
+    val gemPurchases: GemPurchaseProvider = NoGemPurchases
+
     val sessionStore: SessionStore by lazy { SessionStore(this) }
 
     val preferencesStore: PreferencesStore by lazy { PreferencesStore(this) }
@@ -37,6 +47,13 @@ class HabitApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         ReminderNotifier.createChannel(this)
+
+        // Pays gems when a pet's streak reaches a milestone. Each milestone pays once, however often this runs.
+        appScope.launch {
+            repository.pet.collect { pet ->
+                if (pet != null && pet.state.alive) gemRepository.awardStreakGems(pet.bornOn, pet.gemRun, pet.gemStreak)
+            }
+        }
 
         // Keeps the reminder alarm in step with Settings. The current value arrives on every process
         // start too, which re-arms the alarm after the app was force-stopped.

@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.jaspermsnbk.habit_tracker.data.PetMood
 import com.jaspermsnbk.habit_tracker.data.PetUi
 import com.jaspermsnbk.habit_tracker.ui.pet.ArtMood
+import com.jaspermsnbk.habit_tracker.ui.pet.Outfit
 import com.jaspermsnbk.habit_tracker.ui.pet.PetCanvas
 import com.jaspermsnbk.habit_tracker.ui.pet.PetLook
 import com.jaspermsnbk.habit_tracker.ui.pet.Species
@@ -54,8 +55,8 @@ internal fun PetUi.message(): String = when (state.mood) {
     PetMood.Dead -> "$name died. You can still bring ${name} back if you were only away a little while."
 }
 
-internal fun PetUi.look(): PetLook =
-    PetLook(Species.fromName(species), stageForFedDays(state.fedDays), state.mood.toArtMood())
+internal fun PetUi.look(outfit: Outfit = Outfit.None): PetLook =
+    PetLook(Species.fromName(species), stageForFedDays(state.fedDays), state.mood.toArtMood(), outfit)
 
 internal fun PetUi.stageName(): String = look().stageName
 
@@ -73,13 +74,21 @@ fun PetScreen(
     viewModel: HabitViewModel,
     modifier: Modifier = Modifier,
     onOpenSettings: () -> Unit = {},
+    shop: ShopViewModel? = null,
 ) {
     val pet by viewModel.pet.collectAsState()
+    val outfit by (shop?.outfit ?: kotlinx.coroutines.flow.MutableStateFlow(Outfit.None)).collectAsState()
+    val unseenGems by (shop?.unseenGems ?: kotlinx.coroutines.flow.MutableStateFlow(0)).collectAsState()
+    val balance by (shop?.balance ?: kotlinx.coroutines.flow.MutableStateFlow(0)).collectAsState()
     var adopting by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
-        topBar = { HabitTopBar("Pet", onOpenSettings) },
+        topBar = {
+            HabitTopBar("Pet", onOpenSettings, extraActions = {
+                if (shop != null) GemBalance(balance, Modifier.padding(end = 4.dp))
+            })
+        },
     ) { innerPadding ->
         Column(
             Modifier
@@ -99,7 +108,11 @@ fun PetScreen(
                     onCancel = if (current != null) ({ adopting = false }) else null,
                 )
             } else {
-                PetContent(current, onForgive = viewModel::forgivePet, onAdoptNew = { adopting = true })
+                if (unseenGems > 0 && shop != null) {
+                    GemsEarnedCard(unseenGems, onDismiss = shop::markGemsSeen)
+                    Spacer(Modifier.height(16.dp))
+                }
+                PetContent(current, outfit, onForgive = viewModel::forgivePet, onAdoptNew = { adopting = true })
             }
         }
     }
@@ -165,7 +178,7 @@ private fun SpeciesCard(species: Species, selected: Boolean, onClick: () -> Unit
 }
 
 @Composable
-private fun PetContent(pet: PetUi, onForgive: () -> Unit, onAdoptNew: () -> Unit) {
+private fun PetContent(pet: PetUi, outfit: Outfit, onForgive: () -> Unit, onAdoptNew: () -> Unit) {
     val state = pet.state
     Text(pet.name, style = MaterialTheme.typography.headlineMedium)
     if (state.alive) {
@@ -176,7 +189,7 @@ private fun PetContent(pet: PetUi, onForgive: () -> Unit, onAdoptNew: () -> Unit
         )
     }
     PetCanvas(
-        pet.look(),
+        pet.look(outfit),
         Modifier
             .widthIn(max = 280.dp)
             .fillMaxWidth()
@@ -236,6 +249,24 @@ private fun PetContent(pet: PetUi, onForgive: () -> Unit, onAdoptNew: () -> Unit
     if (!state.alive) {
         Spacer(Modifier.height(24.dp))
         OutlinedButton(onClick = onAdoptNew) { Text("Adopt a new pet") }
+    }
+}
+
+/** Tells the user, once, that a streak paid out. */
+@Composable
+private fun GemsEarnedCard(gems: Int, onDismiss: () -> Unit) {
+    Card(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+    ) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            GemIcon(size = 32.dp)
+            Column(Modifier.weight(1f)) {
+                Text("You earned $gems ${if (gems == 1) "gem" else "gems"}!", style = MaterialTheme.typography.titleMedium)
+                Text("Your streak paid off. Spend them in the Shop, from the Profile tab.", style = MaterialTheme.typography.bodyMedium)
+            }
+            TextButton(onClick = onDismiss) { Text("Nice") }
+        }
     }
 }
 

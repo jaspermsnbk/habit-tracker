@@ -21,6 +21,7 @@ enum class ThemeMode { System, Light, Dark }
  * @param reminderEnabled whether to send a daily reminder about habits not done yet
  * @param reminderTime when that reminder goes out
  * @param howItWorksSeen whether the welcome screen explaining the pet has been shown
+ * @param gemGrantsSeenAt when the user last dismissed the "you earned gems" notice, as epoch milliseconds
  */
 data class AppPreferences(
     val theme: ThemeMode = ThemeMode.System,
@@ -30,6 +31,7 @@ data class AppPreferences(
     val reminderEnabled: Boolean = false,
     val reminderTime: LocalTime = DEFAULT_REMINDER_TIME,
     val howItWorksSeen: Boolean = false,
+    val gemGrantsSeenAt: Long = 0L,
 )
 
 /** 8 PM: late enough that most habits are done, early enough to still do the rest. */
@@ -66,6 +68,8 @@ class PreferencesStore(context: Context) {
 
     fun setHowItWorksSeen(seen: Boolean) = save { putBoolean(KEY_HOW_IT_WORKS_SEEN, seen) }
 
+    fun setGemGrantsSeenAt(epochMillis: Long) = save { putLong(KEY_GEM_GRANTS_SEEN_AT, epochMillis) }
+
     private fun save(changes: SharedPreferences.Editor.() -> Unit) {
         prefs.edit(action = changes)
         state.value = load()
@@ -86,6 +90,7 @@ class PreferencesStore(context: Context) {
             ?.let { LocalTime.of(it / 60, it % 60) }
             ?: DEFAULT_REMINDER_TIME,
         howItWorksSeen = prefs.getBoolean(KEY_HOW_IT_WORKS_SEEN, false),
+        gemGrantsSeenAt = prefs.getLong(KEY_GEM_GRANTS_SEEN_AT, 0L),
     )
 
     private companion object {
@@ -96,5 +101,6 @@ class PreferencesStore(context: Context) {
         const val KEY_REMINDER_ENABLED = "reminder_enabled"
         const val KEY_REMINDER_MINUTE = "reminder_minute_of_day"
         const val KEY_HOW_IT_WORKS_SEEN = "how_it_works_seen"
+        const val KEY_GEM_GRANTS_SEEN_AT = "gem_grants_seen_at"
     }
 }

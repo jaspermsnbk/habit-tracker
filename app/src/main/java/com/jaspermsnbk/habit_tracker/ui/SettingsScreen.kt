@@ -224,7 +224,7 @@ private fun DataSection(onDeleteAll: () -> Unit) {
         AlertDialog(
             onDismissRequest = { confirming = false },
             title = { Text("Delete all data?") },
-            text = { Text("All habits, completions and labels will be permanently deleted. This can't be undone.") },
+            text = { Text("All habits, completions, labels, your pet, gems and items will be permanently deleted. This can't be undone.") },
             confirmButton = {
                 TextButton(
                     onClick = {

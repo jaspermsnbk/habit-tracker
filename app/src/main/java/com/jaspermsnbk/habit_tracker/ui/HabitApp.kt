@@ -26,6 +26,7 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 private enum class Tab(val label: String, val icon: ImageVector) {
     Habits("Habits", Icons.Filled.CheckCircle),
@@ -40,7 +41,7 @@ private enum class Tab(val label: String, val icon: ImageVector) {
  * with settings opening over all of them.
  */
 @Composable
-fun HabitApp(viewModel: HabitViewModel) {
+fun HabitApp(viewModel: HabitViewModel, shop: ShopViewModel = viewModel(factory = ShopViewModel.Factory)) {
     var tab by rememberSaveable { mutableStateOf(Tab.Habits) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
     // Keeps each tab's filters, month and range while it's off screen, including behind settings.
@@ -67,6 +68,7 @@ fun HabitApp(viewModel: HabitViewModel) {
     CompositionLocalProvider(LocalOpenHelp provides { showHelp = true }) {
         HabitShell(
             viewModel = viewModel,
+            shop = shop,
             tab = tab,
             onTabChange = { tab = it },
             showSettings = showSettings,
@@ -79,6 +81,7 @@ fun HabitApp(viewModel: HabitViewModel) {
 @Composable
 private fun HabitShell(
     viewModel: HabitViewModel,
+    shop: ShopViewModel,
     tab: Tab,
     onTabChange: (Tab) -> Unit,
     showSettings: Boolean,
@@ -113,9 +116,9 @@ private fun HabitShell(
         tabStates.SaveableStateProvider(tab.name) {
             when (tab) {
                 Tab.Habits -> HabitListScreen(viewModel, screenModifier, openSettings)
-                Tab.Pet -> PetScreen(viewModel, screenModifier, openSettings)
+                Tab.Pet -> PetScreen(viewModel, screenModifier, openSettings, shop)
                 Tab.Calendar -> CalendarScreen(viewModel, screenModifier, openSettings)
-                Tab.Profile -> ProfileScreen(viewModel, screenModifier, openSettings, onOpenPet = { onTabChange(Tab.Pet) })
+                Tab.Profile -> ProfileScreen(viewModel, screenModifier, openSettings, onOpenPet = { onTabChange(Tab.Pet) }, shop = shop)
                 Tab.Admin -> AdminScreen(screenModifier, openSettings)
             }
         }

@@ -8,6 +8,8 @@ tests and commits. Work on `feature/pet`; merge into it, not `master`.
 - **Pet rules** (`data/PetEngine.kt`): health, mood, freeze tokens, death and forgiveness, replayed
   from check-ins. Stored: pet name, birth date, forgiven days (DB v4).
 - **Pet tab** (`ui/PetScreen.kt`): choose a species and name, then the drawn pet with level, evolution progress, health, streak, freezes, forgiveness and a gravestone when it dies.
+- **Profile tab** (`ui/ProfileScreen.kt`, `ui/TrendsWidgets.kt`): your pet at a glance, the gem balance and the trends as scrolling cards. The Shop button at its top right opens the Shop pop-up. Trends is no longer a tab.
+- **Gems and the Shop** (`data/Gem*.kt`, `ui/ShopSheet.kt`): a gem ledger, streak rewards, outfits bought with gems and worn on the pet, and a purchase-provider seam with nothing behind it yet.
 - **Pet art** (`ui/pet/`): four species, four stages, five moods, three outfits, drawn with Compose
   Canvas. Shown on the Pet tab and the Admin tab.
 - **Admin tab** (`ui/AdminScreen.kt`): previews every look.
@@ -26,8 +28,8 @@ tests and commits. Work on `feature/pet`; merge into it, not `master`.
 | 7 | [Items and cosmetics](07-items-and-cosmetics.md) (builds on 10) | 2, 10 | L |
 | 8 | [Widget and streak freezes](08-widget-and-streak-freezes.md) | 2, 3 | M |
 | 9 | [Egg hatching](09-egg-hatching.md) (note for later) | 2, 3 | M |
-| 10 | [Shop and gems](10-shop-and-gems.md) | 2, 11 | L |
-| 11 | [Profile tab](11-profile-tab.md) (trends widgets, shop pop-up) | 2 | M |
+| 10 | [Shop and gems](10-shop-and-gems.md) (done, except milestone items and Play Billing) | 2, 11 | L |
+| 11 | [Profile tab](11-profile-tab.md) (trends widgets, shop pop-up) (done) | 2 | M |
 
 Plans 3, 4, 5 and 11 can run in parallel now that 2 is done. Plan 10's data work (ledger, rewards, buying) can start at once, but its Shop pop-up needs plan 11's Profile tab. Plan 10 does not need plan 3. Sizes: S is under a day, M a day or two, L longer.
 

@@ -10,6 +10,9 @@ import com.jaspermsnbk.habit_tracker.data.FED_RATIO
 import com.jaspermsnbk.habit_tracker.data.FED_DAYS_PER_FREEZE
 import com.jaspermsnbk.habit_tracker.data.MAX_FORGIVABLE_GAP_DAYS
 import com.jaspermsnbk.habit_tracker.data.MISSED_DAY_DAMAGE
+import com.jaspermsnbk.habit_tracker.data.REPEAT_EVERY_DAYS
+import com.jaspermsnbk.habit_tracker.data.REPEAT_GEMS
+import com.jaspermsnbk.habit_tracker.data.STREAK_MILESTONES
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -52,7 +55,7 @@ class HowItWorksScreenTest {
     fun explainsFeedingMissesFreezesComingBackAndLevelling() {
         composeRule.setContent { HowItWorksScreen(firstRun = false, onDone = {}) }
 
-        listOf("Feeding it", "Missing a day", "Freeze tokens", "Coming back", "Levelling up").forEach {
+        listOf("Feeding it", "Missing a day", "Freeze tokens", "Coming back", "Levelling up", "Gems and the shop").forEach {
             composeRule.onNodeWithText(it).assertExists()
         }
     }
@@ -65,5 +68,14 @@ class HowItWorksScreenTest {
         assertTrue(copy.missed.contains("$MISSED_DAY_DAMAGE health"))
         assertTrue(copy.freezes.contains("$FED_DAYS_PER_FREEZE fed days"))
         assertTrue(copy.forgiveness.contains("$MAX_FORGIVABLE_GAP_DAYS days"))
+    }
+
+    @Test
+    fun gemCopy_listsEveryMilestoneWithItsReward() {
+        val copy = PetRulesCopy().gems
+        STREAK_MILESTONES.forEach { (days, gems) ->
+            assertTrue(copy.contains("$days days in a row pays $gems"))
+        }
+        assertTrue(copy.contains("$REPEAT_GEMS more every $REPEAT_EVERY_DAYS days"))
     }
 }
