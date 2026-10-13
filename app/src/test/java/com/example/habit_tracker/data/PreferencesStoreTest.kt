@@ -84,4 +84,13 @@ class PreferencesStoreTest {
     fun chosenWeekStart_overridesTheRegion() {
         assertEquals(DayOfWeek.SATURDAY, AppPreferences(firstDayOfWeek = DayOfWeek.SATURDAY).weekStart(Locale.US))
     }
+
+    @Test
+    fun howItWorksSeen_startsFalse_andSticks() {
+        assertEquals(false, PreferencesStore(context).preferences.value.howItWorksSeen)
+
+        PreferencesStore(context).setHowItWorksSeen(true)
+
+        assertEquals(true, PreferencesStore(context).preferences.value.howItWorksSeen)
+    }
 }

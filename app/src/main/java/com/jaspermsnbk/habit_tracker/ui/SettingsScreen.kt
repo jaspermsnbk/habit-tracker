@@ -113,6 +113,16 @@ fun SettingsScreen(viewModel: HabitViewModel, onBack: () -> Unit, modifier: Modi
         ) {
             SettingsSection("Account") { AccountSection() }
             HorizontalDivider()
+            LocalOpenHelp.current?.let { openHelp ->
+                SettingsSection("Help") {
+                    ListItem(
+                        headlineContent = { Text("How it works") },
+                        supportingContent = { Text("How your pet is fed, how it levels up and what keeps it safe.") },
+                        modifier = Modifier.clickable(onClick = openHelp),
+                    )
+                }
+                HorizontalDivider()
+            }
             SettingsSection("Labels") {
                 LabelsSection(
                     labels = labels,

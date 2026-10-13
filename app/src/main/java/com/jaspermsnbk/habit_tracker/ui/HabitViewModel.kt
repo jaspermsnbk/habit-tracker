@@ -68,6 +68,8 @@ class HabitViewModel(
 
     internal fun setTrendsRange(range: TrendRange) = preferencesStore.setTrendsRange(range.name)
 
+    fun markHowItWorksSeen() = preferencesStore.setHowItWorksSeen(true)
+
     fun setReminderEnabled(enabled: Boolean) = preferencesStore.setReminderEnabled(enabled)
 
     fun setReminderTime(time: LocalTime) = preferencesStore.setReminderTime(time)

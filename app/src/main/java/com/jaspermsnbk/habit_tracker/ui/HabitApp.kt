@@ -16,8 +16,11 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.SaveableStateHolder
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
@@ -43,10 +46,47 @@ fun HabitApp(viewModel: HabitViewModel) {
     // Keeps each tab's filters, month and range while it's off screen, including behind settings.
     val tabStates = rememberSaveableStateHolder()
 
-    BackHandler(enabled = showSettings) { showSettings = false }
+    var showHelp by rememberSaveable { mutableStateOf(false) }
+    val preferences by viewModel.preferences.collectAsState()
 
+    BackHandler(enabled = showSettings || showHelp) {
+        if (showHelp) showHelp = false else showSettings = false
+    }
+
+    // The first time in, the pet is explained before anything else.
+    if (!preferences.howItWorksSeen) {
+        HowItWorksScreen(firstRun = true, onDone = viewModel::markHowItWorksSeen)
+        return
+    }
+
+    if (showHelp) {
+        HowItWorksScreen(firstRun = false, onDone = { showHelp = false })
+        return
+    }
+
+    CompositionLocalProvider(LocalOpenHelp provides { showHelp = true }) {
+        HabitShell(
+            viewModel = viewModel,
+            tab = tab,
+            onTabChange = { tab = it },
+            showSettings = showSettings,
+            onShowSettings = { showSettings = it },
+            tabStates = tabStates,
+        )
+    }
+}
+
+@Composable
+private fun HabitShell(
+    viewModel: HabitViewModel,
+    tab: Tab,
+    onTabChange: (Tab) -> Unit,
+    showSettings: Boolean,
+    onShowSettings: (Boolean) -> Unit,
+    tabStates: SaveableStateHolder,
+) {
     if (showSettings) {
-        SettingsScreen(viewModel, onBack = { showSettings = false })
+        SettingsScreen(viewModel, onBack = { onShowSettings(false) })
         return
     }
 
@@ -56,7 +96,7 @@ fun HabitApp(viewModel: HabitViewModel) {
                 Tab.entries.forEach { item ->
                     NavigationBarItem(
                         selected = tab == item,
-                        onClick = { tab = item },
+                        onClick = { onTabChange(item) },
                         icon = { Icon(item.icon, contentDescription = null) },
                         label = { Text(item.label) },
                     )
@@ -69,7 +109,7 @@ fun HabitApp(viewModel: HabitViewModel) {
         val screenModifier = Modifier
             .padding(innerPadding)
             .consumeWindowInsets(innerPadding)
-        val openSettings = { showSettings = true }
+        val openSettings = { onShowSettings(true) }
         tabStates.SaveableStateProvider(tab.name) {
             when (tab) {
                 Tab.Habits -> HabitListScreen(viewModel, screenModifier, openSettings)

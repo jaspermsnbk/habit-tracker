@@ -13,6 +13,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Before
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -25,6 +26,10 @@ class MainActivityTest {
     val composeRule = createEmptyComposeRule()
 
     private val app: HabitApplication = ApplicationProvider.getApplicationContext()
+
+    // Most tests are about the app itself, so they start past the first-run welcome screen.
+    @Before
+    fun skipWelcome() = app.preferencesStore.setHowItWorksSeen(true)
 
     // The app's database is a process-wide singleton, so habits added here would leak into
     // other tests that expect an empty list.
@@ -158,6 +163,80 @@ class MainActivityTest {
             composeRule.onNode(hasText("Trends") and hasClickAction()).performClick()
 
             composeRule.onNodeWithText("Check-ins per week").assertExists()
+        }
+    }
+
+    @Test
+    fun firstRun_explainsThePet_thenOpensTheApp() {
+        app.preferencesStore.setHowItWorksSeen(false)
+        app.sessionStore.continueAsGuest()
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            composeRule.onNodeWithText("Meet your pet").assertIsDisplayed()
+            composeRule.onNodeWithContentDescription("Add").assertDoesNotExist()
+
+            composeRule.onNodeWithText("Got it, let's go").performClick()
+
+            composeRule.onNodeWithContentDescription("Add").assertIsDisplayed()
+            assertTrue(app.preferencesStore.preferences.value.howItWorksSeen)
+        }
+    }
+
+    @Test
+    fun welcome_isNotShownAgainOnceSeen() {
+        app.sessionStore.continueAsGuest()
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            composeRule.onNodeWithText("Meet your pet").assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun helpButton_isOnEveryTab_andOpensHowItWorks() {
+        app.sessionStore.continueAsGuest()
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            listOf("Habits", "Pet", "Calendar", "Trends", "Admin").forEach { tab ->
+                composeRule.onNode(hasText(tab) and hasClickAction()).performClick()
+                composeRule.onNodeWithContentDescription("How it works").performClick()
+
+                composeRule.onNodeWithText("Your pet, explained").assertIsDisplayed()
+
+                composeRule.onNodeWithContentDescription("Back").performClick()
+
+                composeRule.onNodeWithText("Your pet, explained").assertDoesNotExist()
+                composeRule.onNodeWithContentDescription("How it works").assertIsDisplayed()
+            }
+        }
+    }
+
+    @Test
+    fun systemBack_closesHowItWorks() {
+        app.sessionStore.continueAsGuest()
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            composeRule.onNodeWithContentDescription("How it works").performClick()
+            composeRule.onNodeWithText("Your pet, explained").assertIsDisplayed()
+
+            scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+
+            composeRule.onNodeWithContentDescription("Add").assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun settings_linksToHowItWorks_andBackReturnsToSettings() {
+        app.sessionStore.continueAsGuest()
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            composeRule.onNodeWithContentDescription("Settings").performClick()
+            composeRule.onNodeWithText("How it works").performClick()
+
+            composeRule.onNodeWithText("Your pet, explained").assertIsDisplayed()
+
+            composeRule.onNodeWithContentDescription("Back").performClick()
+
+            composeRule.onNodeWithText("Settings").assertIsDisplayed()
         }
     }
 }

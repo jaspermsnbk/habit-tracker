@@ -20,6 +20,7 @@ enum class ThemeMode { System, Light, Dark }
  * @param trendsRange the name of the range Trends opens on, or null for its default
  * @param reminderEnabled whether to send a daily reminder about habits not done yet
  * @param reminderTime when that reminder goes out
+ * @param howItWorksSeen whether the welcome screen explaining the pet has been shown
  */
 data class AppPreferences(
     val theme: ThemeMode = ThemeMode.System,
@@ -28,6 +29,7 @@ data class AppPreferences(
     val trendsRange: String? = null,
     val reminderEnabled: Boolean = false,
     val reminderTime: LocalTime = DEFAULT_REMINDER_TIME,
+    val howItWorksSeen: Boolean = false,
 )
 
 /** 8 PM: late enough that most habits are done, early enough to still do the rest. */
@@ -62,6 +64,8 @@ class PreferencesStore(context: Context) {
 
     fun setReminderTime(time: LocalTime) = save { putInt(KEY_REMINDER_MINUTE, time.hour * 60 + time.minute) }
 
+    fun setHowItWorksSeen(seen: Boolean) = save { putBoolean(KEY_HOW_IT_WORKS_SEEN, seen) }
+
     private fun save(changes: SharedPreferences.Editor.() -> Unit) {
         prefs.edit(action = changes)
         state.value = load()
@@ -81,6 +85,7 @@ class PreferencesStore(context: Context) {
             .takeIf { it in 0 until 24 * 60 }
             ?.let { LocalTime.of(it / 60, it % 60) }
             ?: DEFAULT_REMINDER_TIME,
+        howItWorksSeen = prefs.getBoolean(KEY_HOW_IT_WORKS_SEEN, false),
     )
 
     private companion object {
@@ -90,5 +95,6 @@ class PreferencesStore(context: Context) {
         const val KEY_TRENDS_RANGE = "trends_range"
         const val KEY_REMINDER_ENABLED = "reminder_enabled"
         const val KEY_REMINDER_MINUTE = "reminder_minute_of_day"
+        const val KEY_HOW_IT_WORKS_SEEN = "how_it_works_seen"
     }
 }

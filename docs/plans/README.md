@@ -36,3 +36,5 @@ Plans 3, 4 and 5 can run in parallel once 2 is done. Sizes: S is under a day, M 
 - Anything the pet earns must come from finishing habits. A button that gives rewards for free gets tapped for free.
 - Schema changes get a new migration and a migration test. Never edit a released migration.
 - Each commit leaves `./gradlew :app:testDebugUnitTest` no worse than before.
+- When a plan changes a rule the pet follows, update `PetRulesCopy` and `HowItWorksScreen` in the same commit.
+  The copy is built from the same constants the pet uses, and `HowItWorksScreenTest` checks they match.
