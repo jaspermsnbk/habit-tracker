@@ -37,7 +37,7 @@ class MigrationTest {
 
         // Opening runs the migrations, and Room then validates the result against the current entities.
         val db = Room.databaseBuilder(context, HabitDatabase::class.java, DB_NAME)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .allowMainThreadQueries()
             .build()
         try {
@@ -68,7 +68,7 @@ class MigrationTest {
 
         // Opening runs the migration, and Room then validates the result against the v3 entities.
         val db = Room.databaseBuilder(context, HabitDatabase::class.java, DB_NAME)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .allowMainThreadQueries()
             .build()
         try {
@@ -82,6 +82,30 @@ class MigrationTest {
 
             assertTrue(repository.updateHabit(habit.id, habit.name, habit.color, habit.labelId, "📚"))
             assertEquals("📚", repository.habits.first().single().emoji)
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun migrate4To5_keepsThePet_andMakesItAMochi() = runBlocking {
+        createVersion4Database()
+
+        val db = Room.databaseBuilder(context, HabitDatabase::class.java, DB_NAME)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            val repository = HabitRepository(db.habitDao())
+
+            val pet = repository.pet.first()!!
+            assertEquals("Momo", pet.name)
+            assertEquals("Mochi", pet.species)
+            assertEquals(LocalDate.ofEpochDay(20_000), pet.bornOn)
+            assertEquals("Read", repository.habits.first().single().name)
+
+            assertTrue(repository.adoptPet("Kiki", "Bun"))
+            assertEquals("Bun", repository.pet.first()!!.species)
         } finally {
             db.close()
         }
@@ -116,6 +140,29 @@ class MigrationTest {
                 "INSERT INTO habit_entries (id, habitId, date, createdAt) VALUES ('e1', 'h1', 20000, 0)"
             )
             db.version = 2
+        }
+    }
+
+    /** Recreates the database as version 4 left it: habits with emoji, a pet and its forgiven days. */
+    private fun createVersion4Database() {
+        val file = context.getDatabasePath(DB_NAME).apply { parentFile?.mkdirs() }
+        SQLiteDatabase.openOrCreateDatabase(file, null).use { db ->
+            VERSION_2_SCHEMA.forEach(db::execSQL)
+            db.execSQL("ALTER TABLE `habits` ADD COLUMN `emoji` TEXT")
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `pet` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, " +
+                    "`bornOn` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `pet_forgiven_days` (`date` INTEGER NOT NULL, " +
+                    "`forgivenOn` INTEGER NOT NULL, PRIMARY KEY(`date`))"
+            )
+            db.execSQL(
+                "INSERT INTO habits (id, name, color, archived, createdAt, updatedAt, labelId, emoji) " +
+                    "VALUES ('h1', 'Read', '#2E7D32', 0, 0, 0, NULL, NULL)"
+            )
+            db.execSQL("INSERT INTO pet (id, name, bornOn) VALUES ('pet', 'Momo', 20000)")
+            db.version = 4
         }
     }
 

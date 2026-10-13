@@ -36,7 +36,7 @@ class PetModelTest {
     fun everyPetMoodHasAnArtMood() {
         PetMood.entries.forEach { it.toArtMood() }
         assertEquals(ArtMood.Happy, PetMood.Happy.toArtMood())
-        assertEquals(ArtMood.Sad, PetMood.Dead.toArtMood())
+        assertEquals(ArtMood.Dead, PetMood.Dead.toArtMood())
     }
 
     @Test(expected = IllegalArgumentException::class)
@@ -58,5 +58,22 @@ class PetModelTest {
                 assertTrue("$species $stage eyes sit on the body", g.eyeY in g.top..g.cy + g.h0)
             }
         }
+    }
+
+    @Test
+    fun fromName_findsASpecies_andFallsBackToTheFirst() {
+        assertEquals(Species.Pip, Species.fromName("Pip"))
+        assertEquals(Species.Mochi, Species.fromName("Dragon"))
+        assertEquals(Species.Mochi, Species.fromName(null))
+    }
+
+    @Test
+    fun evolutionProgress_fillsEachStageThenStaysFull() {
+        assertEquals(0f, evolutionProgress(0), 0.001f)
+        assertEquals(0f, evolutionProgress(1), 0.001f)
+        assertEquals(0.5f, evolutionProgress(4), 0.001f) // halfway from day 1 to day 7
+        assertEquals(0f, evolutionProgress(7), 0.001f)
+        assertEquals(1f, evolutionProgress(21), 0.001f)
+        assertEquals(1f, evolutionProgress(400), 0.001f)
     }
 }

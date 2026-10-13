@@ -83,4 +83,13 @@ class PetRepositoryTest {
         repository.deleteAllData()
         assertNull(repository.pet.first())
     }
+
+    @Test
+    fun adopting_remembersTheSpecies_andDefaultsToMochi() = runBlocking {
+        repository.adoptPet("Momo", "Pip")
+        assertEquals("Pip", repository.pet.first()!!.species)
+
+        repository.adoptPet("Kiki")
+        assertEquals("Mochi", repository.pet.first()!!.species)
+    }
 }

@@ -7,11 +7,16 @@ enum class Species(val label: String, val blurb: String, val stageNames: List<St
     Mochi("Mochi", "A round cat-like blob", listOf("Egg", "Mochling", "Mochi", "Grand Mochi")),
     Pip("Pip", "A small bird", listOf("Egg", "Peep", "Pip", "Plume Pip")),
     Bun("Bun", "A rabbit with tall ears", listOf("Egg", "Bunling", "Bun", "Grand Bun")),
-    Shell("Shell", "A turtle with a patterned shell", listOf("Egg", "Pebble", "Shell", "Elder Shell")),
+    Shell("Shell", "A turtle with a patterned shell", listOf("Egg", "Pebble", "Shell", "Elder Shell"));
+
+    companion object {
+        /** The species stored under [name], or the first one for a name this version does not know. */
+        fun fromName(name: String?): Species = entries.firstOrNull { it.name == name } ?: entries.first()
+    }
 }
 
-/** How the pet looks right now. Separate from [PetMood], which also has Dead. */
-enum class ArtMood { Happy, Idle, Hungry, Sad, Sleep }
+/** How the pet looks right now. Dead shows a gravestone instead of the pet. */
+enum class ArtMood { Happy, Idle, Hungry, Sad, Sleep, Dead }
 
 /** What the pet wears, chosen by the kind of habit the user sticks with most. */
 enum class Outfit(val label: String, val habit: String, val trait: String?) {
@@ -49,9 +54,19 @@ fun stageForFedDays(fedDays: Int): Int = EVOLUTION_FED_DAYS.count { fedDays >= i
 fun fedDaysToNextStage(fedDays: Int): Int? =
     EVOLUTION_FED_DAYS.firstOrNull { it > fedDays }?.minus(fedDays)
 
+/** How far through the current stage a pet is, 0 to 1, and 1 once fully evolved. */
+fun evolutionProgress(fedDays: Int): Float {
+    val stage = stageForFedDays(fedDays)
+    if (stage >= MAX_STAGE) return 1f
+    val start = if (stage == 0) 0 else EVOLUTION_FED_DAYS[stage - 1]
+    val end = EVOLUTION_FED_DAYS[stage]
+    return (fedDays - start).toFloat() / (end - start)
+}
+
 fun PetMood.toArtMood(): ArtMood = when (this) {
     PetMood.Happy -> ArtMood.Happy
     PetMood.Content -> ArtMood.Idle
     PetMood.Hungry -> ArtMood.Hungry
-    PetMood.Sad, PetMood.Dead -> ArtMood.Sad
+    PetMood.Sad -> ArtMood.Sad
+    PetMood.Dead -> ArtMood.Dead
 }

@@ -45,6 +45,10 @@ internal fun Species.palette(): Palette = when (this) {
  * drawing; [wave] (0..1) is a gentle idle sway, and [zPhase] (0..1) drives the sleep "z"s.
  */
 internal fun DrawScope.drawPet(look: PetLook, wave: Float = 0f, zPhase: Float = 0f) {
+    if (look.mood == ArtMood.Dead) {
+        drawGrave(look.species)
+        return
+    }
     if (look.stage == 0) {
         drawEgg(look.species, wave)
         return
@@ -97,6 +101,36 @@ internal fun DrawScope.roundedPolygon(color: Color, round: Float, points: List<O
     }
     drawPath(path, color)
     drawPath(path, color, style = roundStroke(round))
+}
+
+// ---------------------------------------------------------------- grave
+
+private fun DrawScope.drawGrave(species: Species) {
+    val palette = species.palette()
+    val stone = Color(0xFFC3C6D4)
+    val stoneDark = Color(0xFF9296AB)
+    drawGroundShadow(100f, 52f)
+    val slab = Path().apply {
+        moveTo(68f, 168f)
+        lineTo(68f, 104f)
+        cubicTo(68f, 66f, 132f, 66f, 132f, 104f)
+        lineTo(132f, 168f)
+        close()
+    }
+    drawPath(slab, stone)
+    drawPath(slab, stoneDark, style = roundStroke(3f))
+    // A small cross cut into the stone.
+    drawLine(stoneDark, Offset(100f, 92f), Offset(100f, 130f), strokeWidth = 5f, cap = StrokeCap.Round)
+    drawLine(stoneDark, Offset(88f, 105f), Offset(112f, 105f), strokeWidth = 5f, cap = StrokeCap.Round)
+    // Grass at the foot, and a flower in the pet's colour.
+    val grass = Color(0xFF6FB27F)
+    for (x in listOf(60f, 72f, 128f, 140f)) {
+        drawLine(grass, Offset(x, 168f), Offset(x - 3f, 156f), strokeWidth = 3.5f, cap = StrokeCap.Round)
+        drawLine(grass, Offset(x, 168f), Offset(x + 4f, 157f), strokeWidth = 3.5f, cap = StrokeCap.Round)
+    }
+    drawLine(grass, Offset(146f, 168f), Offset(146f, 150f), strokeWidth = 3f, cap = StrokeCap.Round)
+    drawCircle(palette.body, 7f, Offset(146f, 146f))
+    drawCircle(PetColors.White, 3f, Offset(146f, 146f))
 }
 
 // ---------------------------------------------------------------- egg

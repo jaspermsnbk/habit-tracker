@@ -152,4 +152,30 @@ class PetEngineTest {
         assertTrue(s.forgivableDays.isEmpty())
         assertNull(s.diedOn)
     }
+
+    @Test
+    fun fedDays_countsEveryFedDay_notFreezesOrForgivenDays() {
+        // 5 fed days earn a freeze; day 5 is missed and frozen; days 6 and 7 are fed.
+        val done = daysFrom(born, 5) + born.plusDays(6) + born.plusDays(7)
+        val s = state(born.plusDays(7), listOf(habit(*done)))
+        assertEquals(7, s.fedDays)
+
+        val forgiven = state(born.plusDays(5), listOf(habit(born, born.plusDays(5))), forgiven = (1L..4L).map { born.plusDays(it) }.toSet())
+        assertEquals(2, forgiven.fedDays)
+    }
+
+    @Test
+    fun fedDays_isZeroForANewPet() {
+        assertEquals(0, state(born, listOf(habit())).fedDays)
+    }
+
+    @Test
+    fun level_risesEveryThreeFedDays_andStopsAtTwenty() {
+        assertEquals(1, petLevel(0))
+        assertEquals(1, petLevel(2))
+        assertEquals(2, petLevel(3))
+        assertEquals(8, petLevel(21))
+        assertEquals(MAX_LEVEL, petLevel(57))
+        assertEquals(MAX_LEVEL, petLevel(5_000))
+    }
 }

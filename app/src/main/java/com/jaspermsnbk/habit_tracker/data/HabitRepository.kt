@@ -45,6 +45,7 @@ data class LabelUi(
 /** The pet with its derived state. */
 data class PetUi(
     val name: String,
+    val species: String,
     val bornOn: LocalDate,
     val state: PetState,
 )
@@ -98,6 +99,7 @@ class HabitRepository(
             pet?.let {
                 PetUi(
                     name = it.name,
+                    species = it.species,
                     bornOn = it.bornOn,
                     state = petState(
                         bornOn = it.bornOn,
@@ -111,11 +113,11 @@ class HabitRepository(
         }
 
     /** Starts a new pet as of today, replacing any existing one (which is how a dead pet is replaced). */
-    suspend fun adoptPet(name: String): Boolean {
+    suspend fun adoptPet(name: String, species: String = DEFAULT_PET_SPECIES): Boolean {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return false
         dao.deleteForgivenDays()
-        dao.upsertPet(PetEntity(name = trimmed, bornOn = LocalDate.now(clock)))
+        dao.upsertPet(PetEntity(name = trimmed, bornOn = LocalDate.now(clock), species = species))
         return true
     }
 

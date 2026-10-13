@@ -16,7 +16,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PetEntity::class,
         PetForgivenDayEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -35,7 +35,7 @@ abstract class HabitDatabase : RoomDatabase() {
                     context.applicationContext,
                     HabitDatabase::class.java,
                     "habits.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { instance = it }
             }
     }
 }
@@ -74,5 +74,12 @@ internal val MIGRATION_3_4 = object : Migration(3, 4) {
             "CREATE TABLE IF NOT EXISTS `pet_forgiven_days` (`date` INTEGER NOT NULL, " +
                 "`forgivenOn` INTEGER NOT NULL, PRIMARY KEY(`date`))"
         )
+    }
+}
+
+/** v5 records which species the pet is. Existing pets become Mochi, the only one they could see. */
+internal val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `pet` ADD COLUMN `species` TEXT NOT NULL DEFAULT 'Mochi'")
     }
 }

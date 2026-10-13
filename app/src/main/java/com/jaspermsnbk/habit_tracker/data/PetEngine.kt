@@ -9,6 +9,13 @@ internal const val MISSED_DAY_DAMAGE = 25
 internal const val FED_DAYS_PER_FREEZE = 5
 internal const val MAX_FREEZES = 3
 
+/** Every this many fed days is one level, up to [MAX_LEVEL]. */
+internal const val FED_DAYS_PER_LEVEL = 3
+internal const val MAX_LEVEL = 20
+
+/** The level a pet has reached after [fedDays] fed days; a new pet is level 1. */
+internal fun petLevel(fedDays: Int): Int = minOf(MAX_LEVEL, 1 + fedDays / FED_DAYS_PER_LEVEL)
+
 /** A day is "fed" when at least this share of the habits that existed that day were done. */
 internal const val FED_RATIO = 0.5
 
@@ -23,6 +30,7 @@ enum class PetMood { Happy, Content, Hungry, Sad, Dead }
  *
  * @param freezes unused freeze tokens; one is spent automatically on a missed day
  * @param fedStreak consecutive fed days, not counting days a freeze or forgiveness covered
+ * @param fedDays every fed day in the pet's life, which is what evolution counts; a freeze or forgiveness never adds to it
  * @param forgivableDays the missed days forgiveness would cover; empty when it isn't on offer
  */
 data class PetState(
@@ -30,11 +38,13 @@ data class PetState(
     val mood: PetMood,
     val freezes: Int,
     val fedStreak: Int,
+    val fedDays: Int,
     val fedToday: Boolean,
     val diedOn: LocalDate?,
     val forgivableDays: List<LocalDate>,
 ) {
     val alive: Boolean get() = diedOn == null
+    val level: Int get() = petLevel(fedDays)
     val canForgive: Boolean get() = forgivableDays.isNotEmpty()
 }
 
@@ -64,6 +74,7 @@ internal fun petState(
     var health = MAX_HEALTH
     var freezes = 0
     var streak = 0
+    var fedDays = 0
     var fedToday = false
     var diedOn: LocalDate? = null
     var gapStart: LocalDate = bornOn
@@ -78,6 +89,7 @@ internal fun petState(
                 fed -> {
                     health = minOf(MAX_HEALTH, health + FED_DAY_HEALTH)
                     streak++
+                    fedDays++
                     if (streak % FED_DAYS_PER_FREEZE == 0) freezes = minOf(MAX_FREEZES, freezes + 1)
                     gapStart = day.plusDays(1)
                     gapHasDamage = false
@@ -120,5 +132,5 @@ internal fun petState(
         fedToday -> if (health >= 70) PetMood.Happy else PetMood.Content
         else -> PetMood.Hungry
     }
-    return PetState(health, mood, freezes, streak, fedToday, diedOn, forgivableDays)
+    return PetState(health, mood, freezes, streak, fedDays, fedToday, diedOn, forgivableDays)
 }

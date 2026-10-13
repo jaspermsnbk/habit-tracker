@@ -51,7 +51,7 @@ class HabitViewModel(
             initialValue = null,
         )
 
-    fun adoptPet(name: String) = viewModelScope.launch { repository.adoptPet(name) }
+    fun adoptPet(name: String, species: String) = viewModelScope.launch { repository.adoptPet(name, species) }
 
     fun renamePet(name: String) = viewModelScope.launch { repository.renamePet(name) }
 

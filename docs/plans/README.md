@@ -7,9 +7,9 @@ tests and commits. Work on `feature/pet`; merge into it, not `master`.
 
 - **Pet rules** (`data/PetEngine.kt`): health, mood, freeze tokens, death and forgiveness, replayed
   from check-ins. Stored: pet name, birth date, forgiven days (DB v4).
-- **Pet tab** (`ui/PetScreen.kt`): adopt, health, streak, freezes, forgive. Still uses emoji faces.
+- **Pet tab** (`ui/PetScreen.kt`): choose a species and name, then the drawn pet with level, evolution progress, health, streak, freezes, forgiveness and a gravestone when it dies.
 - **Pet art** (`ui/pet/`): four species, four stages, five moods, three outfits, drawn with Compose
-  Canvas. Only shown on the Admin tab.
+  Canvas. Shown on the Pet tab and the Admin tab.
 - **Admin tab** (`ui/AdminScreen.kt`): previews every look.
 - **How it works** (`ui/HowItWorksScreen.kt`): first-run welcome and a help screen reachable from the top bar.
 
@@ -17,8 +17,8 @@ tests and commits. Work on `feature/pet`; merge into it, not `master`.
 
 | # | Plan | Needs | Size |
 |---|------|-------|------|
-| 1 | [Baseline and sync](01-baseline-and-sync.md) | none | S |
-| 2 | [Drawn pets in the Pet tab](02-drawn-pets-in-pet-tab.md) | 1 | M |
+| 1 | [Baseline and sync](01-baseline-and-sync.md) (done) | none | S |
+| 2 | [Drawn pets in the Pet tab](02-drawn-pets-in-pet-tab.md) (done) | 1 | M |
 | 3 | [Label traits and outfits](03-label-traits-and-outfits.md) | 2 | M |
 | 4 | [Care actions](04-care-actions.md) | 2 | M |
 | 5 | [Pet voice: notifications and reactions](05-pet-voice.md) | 2 | S |

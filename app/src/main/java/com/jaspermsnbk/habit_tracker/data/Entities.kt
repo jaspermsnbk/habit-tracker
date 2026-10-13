@@ -79,11 +79,15 @@ data class PetEntity(
     @PrimaryKey val id: String = PET_ID,
     val name: String,
     val bornOn: LocalDate,
+    /** The name of a `Species`; the UI falls back to the first species for names it does not know. */
+    val species: String = DEFAULT_PET_SPECIES,
 ) {
     companion object {
         const val PET_ID = "pet"
     }
 }
+
+const val DEFAULT_PET_SPECIES = "Mochi"
 
 /** A missed day the user forgave, and the day they did it (for the forgiveness cooldown). */
 @Entity(tableName = "pet_forgiven_days")
