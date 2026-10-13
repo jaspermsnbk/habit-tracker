@@ -44,11 +44,11 @@ No gems or items can be bought with money directly; money only ever buys gems.
 - **Traits still matter, differently:** plan 3 keeps traits for stats. An outfit may later require a trait score to *unlock
   for purchase* (for example 10 days of running before the Runner outfit can be bought); leave that out of v1.
 
-### The Shop tab
-- Balance in the top bar of the Shop and Pet tabs: gem icon and count.
+### The Shop (a pop-up on the Profile tab)
+- It is a **bottom sheet opened from a button in the Profile tab's top bar** (see plan 11), not a tab and not in Settings.
+- The gem balance shows in the Profile header and at the top of the sheet.
 - Slot chips, then a grid of items drawn on **your own pet** at its current species and stage, with price.
-- Tap an item for a sheet: larger preview, price, **Buy**, **Equip** or **Unequip**, and "N more gems" when short.
-- **Tab bar:** the bar already has five tabs. Move **Admin** out of it (Settings, "Pet gallery") so the Shop fits.
+- Tap an item for its detail inside the sheet: larger preview, price, **Buy**, **Equip** or **Unequip**, and "N more gems" when short.
 
 ### Buying gems later (the seam, not built yet)
 - `interface GemPurchaseProvider { val available: Boolean; suspend fun packs(): List<GemPack>; suspend fun buy(activity, pack): PurchaseResult }`
@@ -64,8 +64,8 @@ One migration, **DB v6**: `gem_ledger`, `owned_items`, `equipped`. Add all three
 
 ## Files
 
-new `data/GemLedger.kt`, `data/GemRewards.kt`, `data/ShopCatalog.kt`, `data/GemPurchaseProvider.kt`, `ui/ShopScreen.kt`,
-`ui/pet/PetModel.kt` (`PetLook` gains equipped items), `ui/pet/PetOutfits.kt`, `ui/HabitApp.kt` (tabs), `ui/SettingsScreen.kt`,
+new `data/GemLedger.kt`, `data/GemRewards.kt`, `data/ShopCatalog.kt`, `data/GemPurchaseProvider.kt`, `ui/ShopSheet.kt`,
+`ui/pet/PetModel.kt` (`PetLook` gains equipped items), `ui/pet/PetOutfits.kt`,
 `data/PetEngine.kt` (`streakRun`), `HabitRepository.kt`, `HabitDatabase.kt`.
 
 ## Tests
@@ -76,7 +76,7 @@ new `data/GemLedger.kt`, `data/GemRewards.kt`, `data/ShopCatalog.kt`, `data/GemP
 - Buy: not enough gems, already owned, success (balance falls and item is owned), and a failure leaves no half-written rows.
 - Equip: only owned items; replaces the slot; unequip.
 - Every catalogue item draws on every species and stage.
-- Shop screen: balance shown, locked item shows how many more gems, buying updates the grid.
+- Shop sheet: balance shown, locked item shows how many more gems, buying updates the grid.
 - A fake `GemPurchaseProvider`: "Get gems" appears only when available; a purchase credits once even if delivered twice.
 
 ## Risks and decisions
