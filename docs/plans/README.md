@@ -25,6 +25,7 @@ tests and commits. Work on `feature/pet`; merge into it, not `master`.
 | 6 | [Branching evolutions](06-branching-evolutions.md) | 3 | M |
 | 7 | [Items and cosmetics](07-items-and-cosmetics.md) | 2, 4 | L |
 | 8 | [Widget and streak freezes](08-widget-and-streak-freezes.md) | 2, 3 | M |
+| 9 | [Egg hatching](09-egg-hatching.md) (note for later) | 2, 3 | M |
 
 Plans 3, 4 and 5 can run in parallel once 2 is done. Sizes: S is under a day, M a day or two, L longer.
 
