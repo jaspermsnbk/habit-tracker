@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Insights
@@ -28,6 +29,7 @@ private enum class Tab(val label: String, val icon: ImageVector) {
     Pet("Pet", Icons.Filled.Pets),
     Calendar("Calendar", Icons.Filled.CalendarMonth),
     Trends("Trends", Icons.Filled.Insights),
+    Admin("Admin", Icons.Filled.AdminPanelSettings),
 }
 
 /**
@@ -74,6 +76,7 @@ fun HabitApp(viewModel: HabitViewModel) {
                 Tab.Pet -> PetScreen(viewModel, screenModifier, openSettings)
                 Tab.Calendar -> CalendarScreen(viewModel, screenModifier, openSettings)
                 Tab.Trends -> TrendsScreen(viewModel, screenModifier, openSettings)
+                Tab.Admin -> AdminScreen(screenModifier, openSettings)
             }
         }
     }
