@@ -19,15 +19,16 @@ tests and commits. Work on `feature/pet`; merge into it, not `master`.
 |---|------|-------|------|
 | 1 | [Baseline and sync](01-baseline-and-sync.md) (done) | none | S |
 | 2 | [Drawn pets in the Pet tab](02-drawn-pets-in-pet-tab.md) (done) | 1 | M |
-| 3 | [Label traits and outfits](03-label-traits-and-outfits.md) | 2 | M |
+| 3 | [Label traits and stats](03-label-traits-and-outfits.md) (outfits moved to 10) | 2 | M |
 | 4 | [Care actions](04-care-actions.md) | 2 | M |
 | 5 | [Pet voice: notifications and reactions](05-pet-voice.md) | 2 | S |
 | 6 | [Branching evolutions](06-branching-evolutions.md) | 3 | M |
-| 7 | [Items and cosmetics](07-items-and-cosmetics.md) | 2, 4 | L |
+| 7 | [Items and cosmetics](07-items-and-cosmetics.md) (builds on 10) | 2, 10 | L |
 | 8 | [Widget and streak freezes](08-widget-and-streak-freezes.md) | 2, 3 | M |
 | 9 | [Egg hatching](09-egg-hatching.md) (note for later) | 2, 3 | M |
+| 10 | [Shop and gems](10-shop-and-gems.md) | 2 | L |
 
-Plans 3, 4 and 5 can run in parallel once 2 is done. Sizes: S is under a day, M a day or two, L longer.
+Plans 3, 4, 5 and 10 can run in parallel now that 2 is done. Plan 10 does not need plan 3. Sizes: S is under a day, M a day or two, L longer.
 
 ## Rules every plan follows
 

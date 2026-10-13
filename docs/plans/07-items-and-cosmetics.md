@@ -1,5 +1,8 @@
 # 7. Items and cosmetics
 
+> **Changed by plan 10:** the owned and equipped tables, the wardrobe and buying are now part of the Shop. This plan
+> adds the milestone-earned freebies and more item art on top of it.
+
 **Goal:** things to collect and a reason to keep going between evolutions.
 
 ## Current state

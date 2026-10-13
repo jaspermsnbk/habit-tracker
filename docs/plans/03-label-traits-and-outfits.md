@@ -1,6 +1,9 @@
-# 3. Label traits and outfits
+# 3. Label traits and stats
 
-**Goal:** the kind of habit you keep decides what the pet wears and which stat grows.
+> **Changed by plan 10:** outfits are now bought in the Shop and equipped by the user, so this plan no longer
+> chooses an outfit automatically. It keeps the traits and the three stat bars.
+
+**Goal:** the kind of habit you keep decides which stat grows.
 
 ## Current state
 
@@ -28,12 +31,11 @@
 ## Files
 
 `Entities.kt`, `HabitDatabase.kt`, `HabitRepository.kt`, `LabelNameDialog.kt` (trait chips), new
-`data/PetTraits.kt`, `PetScreen.kt`, `ui/pet/PetModel.kt` (map trait to outfit).
+`data/PetTraits.kt`, `PetScreen.kt`, `ui/pet/PetModel.kt` (`Trait`).
 
 ## Tests
 
 - `traitScores`: window edges, labels without a trait, deleted labels, habits completed on the same day counting once each.
-- Outfit choice: clear winner, tie, below threshold.
 - Keyword guess table.
 - `SettingsLabelsTest`: choosing a trait saves it; renaming keeps it.
 - Migration test.
