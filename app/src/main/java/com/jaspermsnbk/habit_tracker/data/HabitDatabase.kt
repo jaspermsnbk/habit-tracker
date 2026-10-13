@@ -15,14 +15,19 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         LabelEntity::class,
         PetEntity::class,
         PetForgivenDayEntity::class,
+        GemLedgerEntity::class,
+        OwnedItemEntity::class,
+        EquippedEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
 abstract class HabitDatabase : RoomDatabase() {
 
     abstract fun habitDao(): HabitDao
+
+    abstract fun gemDao(): GemDao
 
     companion object {
         @Volatile
@@ -35,7 +40,7 @@ abstract class HabitDatabase : RoomDatabase() {
                     context.applicationContext,
                     HabitDatabase::class.java,
                     "habits.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build().also { instance = it }
             }
     }
 }
@@ -81,5 +86,24 @@ internal val MIGRATION_3_4 = object : Migration(3, 4) {
 internal val MIGRATION_4_5 = object : Migration(4, 5) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE `pet` ADD COLUMN `species` TEXT NOT NULL DEFAULT 'Mochi'")
+    }
+}
+
+/** v6 adds the gem ledger, the items the user owns and the item worn in each slot. */
+internal val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `gem_ledger` (`id` TEXT NOT NULL, `amount` INTEGER NOT NULL, " +
+                "`kind` TEXT NOT NULL, `reason` TEXT NOT NULL, `eventKey` TEXT, `createdAt` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`id`))"
+        )
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_gem_ledger_eventKey` ON `gem_ledger` (`eventKey`)")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `owned_items` (`itemId` TEXT NOT NULL, `acquiredAt` INTEGER NOT NULL, " +
+                "`source` TEXT NOT NULL, PRIMARY KEY(`itemId`))"
+        )
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `equipped` (`slot` TEXT NOT NULL, `itemId` TEXT NOT NULL, PRIMARY KEY(`slot`))"
+        )
     }
 }

@@ -95,3 +95,44 @@ data class PetForgivenDayEntity(
     @PrimaryKey val date: LocalDate,
     val forgivenOn: LocalDate,
 )
+
+/**
+ * One line of the gem ledger. [amount] is signed, and the balance is the sum of every line, so there
+ * is no stored balance to fall out of step. [eventKey], when set, is unique: a second line with the
+ * same key is ignored, which makes every grant, purchase and refund safe to retry.
+ */
+@Entity(
+    tableName = "gem_ledger",
+    indices = [Index(value = ["eventKey"], unique = true)],
+)
+data class GemLedgerEntity(
+    @PrimaryKey val id: String,
+    val amount: Int,
+    val kind: String,
+    val reason: String,
+    val eventKey: String? = null,
+    val createdAt: Instant,
+)
+
+/** What a ledger line is for. */
+enum class GemKind { STREAK_GRANT, SPEND, PURCHASE, REFUND, ADJUST }
+
+/** A shop item the user owns. [source] is "shop" for bought items or "milestone" for free ones. */
+@Entity(tableName = "owned_items")
+data class OwnedItemEntity(
+    @PrimaryKey val itemId: String,
+    val acquiredAt: Instant,
+    val source: String = SOURCE_SHOP,
+) {
+    companion object {
+        const val SOURCE_SHOP = "shop"
+        const val SOURCE_MILESTONE = "milestone"
+    }
+}
+
+/** The item worn in a slot; at most one per slot. */
+@Entity(tableName = "equipped")
+data class EquippedEntity(
+    @PrimaryKey val slot: String,
+    val itemId: String,
+)

@@ -37,7 +37,7 @@ class MigrationTest {
 
         // Opening runs the migrations, and Room then validates the result against the current entities.
         val db = Room.databaseBuilder(context, HabitDatabase::class.java, DB_NAME)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
             .allowMainThreadQueries()
             .build()
         try {
@@ -68,7 +68,7 @@ class MigrationTest {
 
         // Opening runs the migration, and Room then validates the result against the v3 entities.
         val db = Room.databaseBuilder(context, HabitDatabase::class.java, DB_NAME)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
             .allowMainThreadQueries()
             .build()
         try {
@@ -92,7 +92,7 @@ class MigrationTest {
         createVersion4Database()
 
         val db = Room.databaseBuilder(context, HabitDatabase::class.java, DB_NAME)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
             .allowMainThreadQueries()
             .build()
         try {
@@ -106,6 +106,30 @@ class MigrationTest {
 
             assertTrue(repository.adoptPet("Kiki", "Bun"))
             assertEquals("Bun", repository.pet.first()!!.species)
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun migrate5To6_keepsThePet_andAddsGemsAndItems() = runBlocking {
+        createVersion4Database()
+        SQLiteDatabase.openDatabase(context.getDatabasePath(DB_NAME).path, null, SQLiteDatabase.OPEN_READWRITE).use {
+            it.execSQL("ALTER TABLE `pet` ADD COLUMN `species` TEXT NOT NULL DEFAULT 'Mochi'")
+            it.version = 5
+        }
+
+        val db = Room.databaseBuilder(context, HabitDatabase::class.java, DB_NAME)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            assertEquals("Momo", HabitRepository(db.habitDao()).pet.first()!!.name)
+
+            val gems = GemRepository(db.gemDao())
+            assertEquals(0, gems.balance.first())
+            assertEquals(5, gems.awardStreakGems(LocalDate.ofEpochDay(20_000), 0, 7))
+            assertEquals(BuyResult.NotEnoughGems(missing = 25), gems.buy("outfit-runner", 30))
         } finally {
             db.close()
         }

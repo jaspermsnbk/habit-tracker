@@ -178,4 +178,21 @@ class PetEngineTest {
         assertEquals(MAX_LEVEL, petLevel(57))
         assertEquals(MAX_LEVEL, petLevel(5_000))
     }
+
+    @Test
+    fun streakRun_countsBreaks_notMissedDays() {
+        // Fed days 0-2, then three missed days (one break), fed on day 6, miss day 7, today is day 8.
+        val done = daysFrom(born, 3) + born.plusDays(6)
+        val s = state(born.plusDays(8), listOf(habit(*done)), forgiven = emptySet())
+        assertEquals(2, s.streakRun) // the streak broke on day 3 and again on day 7
+    }
+
+    @Test
+    fun streakRun_isNotRaisedByAFreezeOrForgiveness() {
+        val frozen = state(born.plusDays(6), listOf(habit(*(daysFrom(born, 5) + born.plusDays(6)))))
+        assertEquals(0, frozen.streakRun)
+
+        val forgiven = state(born.plusDays(3), listOf(habit(born)), forgiven = (1L..2L).map { born.plusDays(it) }.toSet())
+        assertEquals(0, forgiven.streakRun)
+    }
 }

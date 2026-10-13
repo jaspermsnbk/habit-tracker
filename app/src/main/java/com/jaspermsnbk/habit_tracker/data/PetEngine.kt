@@ -30,6 +30,7 @@ enum class PetMood { Happy, Content, Hungry, Sad, Dead }
  *
  * @param freezes unused freeze tokens; one is spent automatically on a missed day
  * @param fedStreak consecutive fed days, not counting days a freeze or forgiveness covered
+ * @param streakRun how many times this pet's fed streak has broken, so each streak has its own number
  * @param fedDays every fed day in the pet's life, which is what evolution counts; a freeze or forgiveness never adds to it
  * @param forgivableDays the missed days forgiveness would cover; empty when it isn't on offer
  */
@@ -39,6 +40,7 @@ data class PetState(
     val freezes: Int,
     val fedStreak: Int,
     val fedDays: Int,
+    val streakRun: Int,
     val fedToday: Boolean,
     val diedOn: LocalDate?,
     val forgivableDays: List<LocalDate>,
@@ -75,6 +77,7 @@ internal fun petState(
     var freezes = 0
     var streak = 0
     var fedDays = 0
+    var streakRun = 0
     var fedToday = false
     var diedOn: LocalDate? = null
     var gapStart: LocalDate = bornOn
@@ -99,6 +102,7 @@ internal fun petState(
                 day in forgiven -> Unit
                 freezes > 0 -> freezes--
                 else -> {
+                    if (streak > 0) streakRun++
                     streak = 0
                     gapHasDamage = true
                     health -= MISSED_DAY_DAMAGE
@@ -132,5 +136,5 @@ internal fun petState(
         fedToday -> if (health >= 70) PetMood.Happy else PetMood.Content
         else -> PetMood.Hungry
     }
-    return PetState(health, mood, freezes, streak, fedDays, fedToday, diedOn, forgivableDays)
+    return PetState(health, mood, freezes, streak, fedDays, streakRun, fedToday, diedOn, forgivableDays)
 }

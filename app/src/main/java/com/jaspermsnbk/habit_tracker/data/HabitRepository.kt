@@ -19,6 +19,7 @@ import java.util.UUID
  *
  * @param last7 completion flags for the 7 days ending today (index 0 = 6 days ago, index 6 = today)
  * @param completedDates every day this habit was completed, for the calendar
+ * @param onTimeDates the days among those that were checked off on the day itself, which is all gems count
  * @param labelName the name of the habit's label, or null if it has none
  * @param createdOn the local day the habit was added, so trends don't count earlier days as missed
  */
@@ -34,6 +35,7 @@ data class HabitUi(
     val labelId: String?,
     val labelName: String?,
     val createdOn: LocalDate,
+    val onTimeDates: Set<LocalDate> = completedDates,
 )
 
 /** A label as the UI sees it. */
@@ -48,6 +50,10 @@ data class PetUi(
     val species: String,
     val bornOn: LocalDate,
     val state: PetState,
+    /** The fed streak counting only check-ins made on the day itself, which is what pays gems. */
+    val gemStreak: Int = 0,
+    /** Which of the pet's streaks [gemStreak] belongs to, so each pays its milestones once. */
+    val gemRun: Int = 0,
 )
 
 /**
@@ -70,9 +76,13 @@ class HabitRepository(
     /** Live stream of habits with streaks computed. Recombines whenever data changes. */
     val habits: Flow<List<HabitUi>> =
         combine(dao.observeHabits(), dao.observeAllEntries(), dao.observeLabels(), today) { habits, entries, labels, today ->
+            val byHabit = entries.groupBy { it.habitId }
             val datesByHabit: Map<String, Set<LocalDate>> =
-                entries.groupBy { it.habitId }
-                    .mapValues { (_, list) -> list.map { it.date }.toSet() }
+                byHabit.mapValues { (_, list) -> list.map { it.date }.toSet() }
+            val onTimeByHabit: Map<String, Set<LocalDate>> =
+                byHabit.mapValues { (_, list) ->
+                    list.filter { it.createdAt.atZone(clock.zone).toLocalDate() == it.date }.map { it.date }.toSet()
+                }
             val labelNames = labels.associate { it.id to it.name }
 
             habits.map { habit ->
@@ -89,6 +99,7 @@ class HabitRepository(
                     labelId = habit.labelId,
                     labelName = habit.labelId?.let(labelNames::get),
                     createdOn = habit.createdAt.atZone(clock.zone).toLocalDate(),
+                    onTimeDates = onTimeByHabit[habit.id].orEmpty(),
                 )
             }
         }
@@ -97,17 +108,22 @@ class HabitRepository(
     val pet: Flow<PetUi?> =
         combine(habits, dao.observePet(), dao.observeForgivenDays()) { habits, pet, forgiven ->
             pet?.let {
+                val forgivenDates = forgiven.mapTo(HashSet()) { day -> day.date }
+                val lastForgivenOn = forgiven.maxOfOrNull { day -> day.forgivenOn }
+                val today = LocalDate.now(clock)
+                val state = petState(it.bornOn, today, habits, forgivenDates, lastForgivenOn)
+                // Gems only count check-ins made on the day, so backdating a week earns nothing.
+                val onTime = petState(
+                    it.bornOn, today, habits.map { habit -> habit.copy(completedDates = habit.onTimeDates) },
+                    forgivenDates, lastForgivenOn,
+                )
                 PetUi(
                     name = it.name,
                     species = it.species,
                     bornOn = it.bornOn,
-                    state = petState(
-                        bornOn = it.bornOn,
-                        today = LocalDate.now(clock),
-                        habits = habits,
-                        forgiven = forgiven.mapTo(HashSet()) { day -> day.date },
-                        lastForgivenOn = forgiven.maxOfOrNull { day -> day.forgivenOn },
-                    ),
+                    state = state,
+                    gemStreak = onTime.fedStreak,
+                    gemRun = onTime.streakRun,
                 )
             }
         }
@@ -142,7 +158,7 @@ class HabitRepository(
     }
 
     suspend fun addHabit(name: String, color: String, labelId: String? = null, emoji: String? = null) {
-        val now = Instant.now()
+        val now = Instant.now(clock)
         dao.upsertHabit(
             HabitEntity(
                 id = UUID.randomUUID().toString(),
@@ -167,7 +183,7 @@ class HabitRepository(
             LabelEntity(
                 id = UUID.randomUUID().toString(),
                 name = trimmed,
-                createdAt = Instant.now(),
+                createdAt = Instant.now(clock),
             )
         )
         return true
@@ -203,7 +219,7 @@ class HabitRepository(
                     id = UUID.randomUUID().toString(),
                     habitId = habitId,
                     date = today,
-                    createdAt = Instant.now(),
+                    createdAt = Instant.now(clock),
                 )
             )
         }
@@ -222,12 +238,12 @@ class HabitRepository(
     ): Boolean {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return false
-        dao.updateHabit(habitId, trimmed, color, labelId, emoji, Instant.now())
+        dao.updateHabit(habitId, trimmed, color, labelId, emoji, Instant.now(clock))
         return true
     }
 
     suspend fun deleteHabit(habitId: String) {
-        dao.archiveHabit(habitId, Instant.now())
+        dao.archiveHabit(habitId, Instant.now(clock))
     }
 
     /** Permanently wipes every habit, completion and label. This can't be undone. */
