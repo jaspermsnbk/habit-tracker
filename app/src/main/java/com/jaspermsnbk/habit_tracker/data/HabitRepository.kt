@@ -1,12 +1,17 @@
 package com.jaspermsnbk.habit_tracker.data
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 import java.util.UUID
 
 /**
@@ -48,7 +53,14 @@ data class PetUi(
  * Single point of access to habit data. In Phase 1 it's Room-only; in Phase 3 this is
  * where the backend sync is added, without the UI or ViewModel needing to change.
  */
-class HabitRepository(private val dao: HabitDao) {
+class HabitRepository(
+    private val dao: HabitDao,
+    private val clock: Clock = Clock.systemDefaultZone(),
+    private val dayPollMillis: Long = DAY_POLL_MILLIS,
+) {
+
+    /** Today's date, now and again whenever it changes, so streaks and the pet move on at midnight. */
+    private val today: Flow<LocalDate> = todayFlow(clock, dayPollMillis)
 
     /** Live stream of labels, sorted by name ignoring case. */
     val labels: Flow<List<LabelUi>> =
@@ -56,8 +68,7 @@ class HabitRepository(private val dao: HabitDao) {
 
     /** Live stream of habits with streaks computed. Recombines whenever data changes. */
     val habits: Flow<List<HabitUi>> =
-        combine(dao.observeHabits(), dao.observeAllEntries(), dao.observeLabels()) { habits, entries, labels ->
-            val today = LocalDate.now()
+        combine(dao.observeHabits(), dao.observeAllEntries(), dao.observeLabels(), today) { habits, entries, labels, today ->
             val datesByHabit: Map<String, Set<LocalDate>> =
                 entries.groupBy { it.habitId }
                     .mapValues { (_, list) -> list.map { it.date }.toSet() }
@@ -76,7 +87,7 @@ class HabitRepository(private val dao: HabitDao) {
                     completedDates = dates,
                     labelId = habit.labelId,
                     labelName = habit.labelId?.let(labelNames::get),
-                    createdOn = habit.createdAt.atZone(ZoneId.systemDefault()).toLocalDate(),
+                    createdOn = habit.createdAt.atZone(clock.zone).toLocalDate(),
                 )
             }
         }
@@ -90,7 +101,7 @@ class HabitRepository(private val dao: HabitDao) {
                     bornOn = it.bornOn,
                     state = petState(
                         bornOn = it.bornOn,
-                        today = LocalDate.now(),
+                        today = LocalDate.now(clock),
                         habits = habits,
                         forgiven = forgiven.mapTo(HashSet()) { day -> day.date },
                         lastForgivenOn = forgiven.maxOfOrNull { day -> day.forgivenOn },
@@ -104,7 +115,7 @@ class HabitRepository(private val dao: HabitDao) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return false
         dao.deleteForgivenDays()
-        dao.upsertPet(PetEntity(name = trimmed, bornOn = LocalDate.now()))
+        dao.upsertPet(PetEntity(name = trimmed, bornOn = LocalDate.now(clock)))
         return true
     }
 
@@ -123,7 +134,7 @@ class HabitRepository(private val dao: HabitDao) {
     suspend fun forgivePet(): Boolean {
         val days = pet.first()?.state?.forgivableDays.orEmpty()
         if (days.isEmpty()) return false
-        val today = LocalDate.now()
+        val today = LocalDate.now(clock)
         dao.insertForgivenDays(days.map { PetForgivenDayEntity(date = it, forgivenOn = today) })
         return true
     }
@@ -181,7 +192,7 @@ class HabitRepository(private val dao: HabitDao) {
 
     /** Toggle today's completion: unmark if already done, otherwise mark done. */
     suspend fun toggleToday(habitId: String) {
-        val today = LocalDate.now()
+        val today = LocalDate.now(clock)
         if (dao.findEntry(habitId, today) != null) {
             dao.deleteEntry(habitId, today)
         } else {
@@ -240,3 +251,19 @@ internal fun currentStreak(dates: Set<LocalDate>, today: LocalDate): Int {
     }
     return streak
 }
+
+/** How often to check whether the date has changed. A minute keeps midnight within a minute even after the phone slept. */
+internal const val DAY_POLL_MILLIS = 60_000L
+
+/**
+ * Emits the date from [clock] now, then again each time it changes. It checks every [pollMillis]
+ * instead of sleeping until midnight, because a sleeping phone pauses long delays and would
+ * wake late.
+ */
+internal fun todayFlow(clock: Clock, pollMillis: Long = DAY_POLL_MILLIS): Flow<LocalDate> =
+    flow {
+        while (true) {
+            emit(LocalDate.now(clock))
+            delay(pollMillis)
+        }
+    }.distinctUntilChanged().flowOn(Dispatchers.Default)
