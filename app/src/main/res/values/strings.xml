@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Habit Tracker</string>
+    <string name="app_name">Habigachi</string>
     <string name="habit_widget_label">Today\'s Habits</string>
     <string name="habit_widget_description">Check off today\'s habits from your home screen.</string>
 

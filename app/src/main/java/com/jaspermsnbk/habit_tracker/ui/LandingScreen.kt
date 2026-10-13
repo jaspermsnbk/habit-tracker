@@ -14,8 +14,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.jaspermsnbk.habit_tracker.R
 import com.jaspermsnbk.habit_tracker.ui.pet.ArtMood
 import com.jaspermsnbk.habit_tracker.ui.pet.MAX_STAGE
 import com.jaspermsnbk.habit_tracker.ui.pet.PetCanvas
@@ -35,10 +37,10 @@ fun LandingScreen(onContinueAsGuest: () -> Unit) {
     ) {
         PetCanvas(PetLook(Species.Mochi, MAX_STAGE, ArtMood.Happy), Modifier.size(140.dp), animate = true)
         Spacer(Modifier.size(16.dp))
-        Text("Habit Tracker", style = MaterialTheme.typography.headlineLarge)
+        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge)
         Spacer(Modifier.size(8.dp))
         Text(
-            "Build streaks, one day at a time.",
+            "Raise a pet with your habits.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

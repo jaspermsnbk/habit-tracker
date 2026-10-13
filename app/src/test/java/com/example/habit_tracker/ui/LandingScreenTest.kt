@@ -20,7 +20,7 @@ class LandingScreenTest {
     fun showsTitleAndGuestButton() {
         composeRule.setContent { LandingScreen(onContinueAsGuest = {}) }
 
-        composeRule.onNodeWithText("Habit Tracker").assertIsDisplayed()
+        composeRule.onNodeWithText("Habigachi").assertIsDisplayed()
         composeRule.onNodeWithText("Continue as guest").assertIsDisplayed()
     }
 
