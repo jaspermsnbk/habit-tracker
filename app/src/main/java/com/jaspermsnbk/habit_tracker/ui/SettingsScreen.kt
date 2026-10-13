@@ -204,7 +204,7 @@ private fun AccountSection() {
 }
 
 /**
- * A single destructive action that wipes every habit, completion and label on the device.
+ * A single destructive action that wipes every habit, completion, label, the pet, gems and items on the device.
  * Requires confirmation, since it can't be undone.
  */
 @Composable
@@ -213,7 +213,7 @@ private fun DataSection(onDeleteAll: () -> Unit) {
 
     ListItem(
         headlineContent = { Text("Delete all data", color = MaterialTheme.colorScheme.error) },
-        supportingContent = { Text("Permanently erase every habit, completion and label") },
+        supportingContent = { Text("Permanently erase your habits, labels, pet, gems and items") },
         leadingContent = {
             Icon(Icons.Outlined.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
         },
