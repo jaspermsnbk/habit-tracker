@@ -344,7 +344,7 @@ Room database, migrations, and UI through Robolectric. The pet engine is easy to
 
 - `ExampleInstrumentedTest` asserts the package name `com.jaspermsnbk.habit_tracker_2`, which is not the app's id, and `ExampleUnitTest` asserts `2 + 2`.
   Both are template leftovers; the instrumented one would fail if it were ever run, which tells you instrumented tests are not run.
-- Tests live in `com.example.habit_tracker` while the app is `com.jaspermsnbk.habit_tracker`.
+- The unit tests sit in `com/example/habit_tracker` directories, although every file declares `package com.jaspermsnbk.habit_tracker...`. A leftover from the rename.
 - Four `Thread.sleep` calls and about 41 `waitUntil` polls on real time; `waitUntilSettled` exists only to work around main-thread scheduling.
   Injecting dispatchers and a test clock would remove it.
 - Some tests use `LocalDate.now()` for data and could fail if they run across midnight.
@@ -395,7 +395,10 @@ developer option.
 4. **Before in-app purchases:** the clock-trust fix (C6), the "delete all data and paid gems" decision, key gems on stable events (C2),
    server-side purchase verification, and a Play Billing implementation behind `GemPurchaseProvider`.
 
-## 8. Appendix: how to reproduce
+## 8. Tickets
+Each finding was turned into one or more tickets in the Notion database Habigachi tickets (Plan = Review, 50 tickets), with a lettered id for each piece (C1a, C1b, and so on), a priority, a size, a checklist of what to do, acceptance criteria, and how to verify. This file is the repo copy of the source page that those tickets link to.
+
+## 9. Appendix: how to reproduce
 
 - Lint: `./gradlew --offline :app:lintDebug`. Report: `app/build/reports/lint-results-debug.html`.
 - Sizes: `./gradlew :app:assembleDebug :app:assembleRelease`; for the R8 number set `release { optimization { enable = true } }` temporarily.
