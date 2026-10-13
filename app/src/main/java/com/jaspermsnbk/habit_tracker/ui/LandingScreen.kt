@@ -8,10 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +16,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.jaspermsnbk.habit_tracker.ui.pet.ArtMood
+import com.jaspermsnbk.habit_tracker.ui.pet.MAX_STAGE
+import com.jaspermsnbk.habit_tracker.ui.pet.PetCanvas
+import com.jaspermsnbk.habit_tracker.ui.pet.PetLook
+import com.jaspermsnbk.habit_tracker.ui.pet.Species
 
 /** First-launch welcome screen. Guest is the only entry path until Google sign-in lands (Phase 5). */
 @Composable
@@ -31,12 +33,7 @@ fun LandingScreen(onContinueAsGuest: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(
-            Icons.Outlined.LocalFireDepartment,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(72.dp),
-        )
+        PetCanvas(PetLook(Species.Mochi, MAX_STAGE, ArtMood.Happy), Modifier.size(140.dp), animate = true)
         Spacer(Modifier.size(16.dp))
         Text("Habit Tracker", style = MaterialTheme.typography.headlineLarge)
         Spacer(Modifier.size(8.dp))

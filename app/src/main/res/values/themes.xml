@@ -4,5 +4,7 @@
       ui/theme/Theme.kt, so this uses a framework parent and needs no
       Material Components (View) library.
     -->
-    <style name="Theme.Habittracker2" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Habittracker2" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
 </resources>

@@ -17,6 +17,7 @@ import com.jaspermsnbk.habit_tracker.data.testPreferences
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
@@ -68,12 +69,14 @@ class SettingsPreferencesTest {
     @Test
     fun dynamicColor_togglesFromTheWholeRow() {
         val dynamicColor = composeRule.onNode(hasText("Dynamic color"))
-        dynamicColor.performScrollTo().assertIsOn()
+        // Off by default, so the app shows its own colours until the user opts in.
+        dynamicColor.performScrollTo().assertIsOff()
+        assertFalse(preferences.preferences.value.dynamicColor)
 
         dynamicColor.performClick()
 
-        dynamicColor.assertIsOff()
-        assertFalse(preferences.preferences.value.dynamicColor)
+        dynamicColor.assertIsOn()
+        assertTrue(preferences.preferences.value.dynamicColor)
     }
 
     @Test

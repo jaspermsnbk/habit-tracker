@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Match the app background in ui/theme/Theme.kt so there is no white flash on launch. -->
+    <color name="window_background">#FAF9FF</color>
+    <color name="launcher_background">#4757C8</color>
+</resources>

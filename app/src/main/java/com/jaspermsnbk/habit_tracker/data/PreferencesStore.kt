@@ -24,7 +24,7 @@ enum class ThemeMode { System, Light, Dark }
  */
 data class AppPreferences(
     val theme: ThemeMode = ThemeMode.System,
-    val dynamicColor: Boolean = true,
+    val dynamicColor: Boolean = false,
     val firstDayOfWeek: DayOfWeek? = null,
     val trendsRange: String? = null,
     val reminderEnabled: Boolean = false,
@@ -76,7 +76,7 @@ class PreferencesStore(context: Context) {
         theme = prefs.getString(KEY_THEME, null)
             ?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() }
             ?: ThemeMode.System,
-        dynamicColor = prefs.getBoolean(KEY_DYNAMIC_COLOR, true),
+        dynamicColor = prefs.getBoolean(KEY_DYNAMIC_COLOR, false),
         firstDayOfWeek = prefs.getString(KEY_WEEK_START, null)
             ?.let { runCatching { DayOfWeek.valueOf(it) }.getOrNull() },
         trendsRange = prefs.getString(KEY_TRENDS_RANGE, null),
