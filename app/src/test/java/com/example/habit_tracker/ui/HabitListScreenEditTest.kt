@@ -21,6 +21,7 @@ import com.jaspermsnbk.habit_tracker.data.HabitRepository
 import com.jaspermsnbk.habit_tracker.data.HabitUi
 import com.jaspermsnbk.habit_tracker.data.inMemoryDatabase
 import com.jaspermsnbk.habit_tracker.data.testPreferences
+import com.jaspermsnbk.habit_tracker.data.waitUntilSettled
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -91,12 +92,17 @@ class HabitListScreenEditTest {
         openEditor()
         composeRule.onNode(dialogTextField).performTextReplacement("  Read a book ")
         composeRule.onNode(hasContentDescription("Blue") and hasAnyAncestor(isDialog())).performClick()
+        // The emoji row pushes the labels below the fold of a small screen.
+        composeRule.scrollHabitDialogToBottom()
         composeRule.onNode(inDialog("Fitness")).performClick()
         composeRule.onNode(saveButton).performClick()
 
         waitFor(hasText("Read a book"))
+        composeRule.waitUntilSettled {
+            composeRule.onAllNodes(hasContentDescription("Label: Fitness"), useUnmergedTree = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithText("Edit habit").assertDoesNotExist()
-        composeRule.onNodeWithContentDescription("Label: Fitness", useUnmergedTree = true).assertExists()
         val habit = habit()
         assertEquals("Read a book", habit.name)
         assertEquals("#1565C0", habit.color)
@@ -141,7 +147,7 @@ class HabitListScreenEditTest {
         composeRule.onNodeWithContentDescription("Done today").performClick()
 
         composeRule.onNodeWithText("Edit habit").assertDoesNotExist()
-        composeRule.waitUntil(timeoutMillis = 5_000) { !habit().doneToday }
+        composeRule.waitUntilSettled { !habit().doneToday }
         assertFalse(habit().doneToday)
 
         composeRule.onNodeWithContentDescription("Delete habit").performClick()

@@ -1,5 +1,6 @@
 package com.jaspermsnbk.habit_tracker.data
 
+import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 
@@ -23,3 +24,17 @@ fun inMemoryDatabase(synchronous: Boolean = false): HabitDatabase =
 
 /** Preferences for a test; Robolectric gives each test fresh shared preferences. */
 fun testPreferences(): PreferencesStore = PreferencesStore(ApplicationProvider.getApplicationContext())
+
+/**
+ * Waits for [condition], letting the main thread run between checks. Room finishes queries on a
+ * background thread and its coroutines resume on the main thread, so a write made of several
+ * queries, or a screen built from several flows, only settles if the main thread gets turns
+ * while the test waits.
+ */
+fun ComposeTestRule.waitUntilSettled(timeoutMillis: Long = 5_000, condition: () -> Boolean) {
+    waitUntil(timeoutMillis) {
+        Thread.sleep(25)
+        waitForIdle()
+        condition()
+    }
+}

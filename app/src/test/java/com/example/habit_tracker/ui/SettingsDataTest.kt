@@ -11,6 +11,7 @@ import com.jaspermsnbk.habit_tracker.data.HabitDatabase
 import com.jaspermsnbk.habit_tracker.data.HabitRepository
 import com.jaspermsnbk.habit_tracker.data.inMemoryDatabase
 import com.jaspermsnbk.habit_tracker.data.testPreferences
+import com.jaspermsnbk.habit_tracker.data.waitUntilSettled
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -66,9 +67,7 @@ class SettingsDataTest {
         composeRule.onNodeWithText("Delete all data").performScrollTo().performClick()
         composeRule.onNodeWithText("Delete").performClick()
 
-        composeRule.waitUntil(timeoutMillis = 5_000) {
-            runBlocking { repository.habits.first() }.isEmpty()
-        }
+        composeRule.waitUntilSettled { runBlocking { repository.habits.first() }.isEmpty() }
         assertTrue(runBlocking { repository.labels.first() }.isEmpty())
     }
 

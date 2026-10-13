@@ -19,6 +19,7 @@ import com.jaspermsnbk.habit_tracker.data.HabitDatabase
 import com.jaspermsnbk.habit_tracker.data.HabitRepository
 import com.jaspermsnbk.habit_tracker.data.inMemoryDatabase
 import com.jaspermsnbk.habit_tracker.data.testPreferences
+import com.jaspermsnbk.habit_tracker.data.waitUntilSettled
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -101,6 +102,7 @@ class HabitListScreenLabelsTest {
 
         openSpeedDialItem("Add habit")
         composeRule.onNode(dialogTextField).performTextInput("Run")
+        composeRule.scrollHabitDialogToBottom()
         composeRule.onNode(hasText("Fitness") and hasAnyAncestor(isDialog())).performClick()
         composeRule.onNode(dialogAddButton).performClick()
 
@@ -153,7 +155,7 @@ class HabitListScreenLabelsTest {
 
     /** Room emits on a background thread, so wait for the UI to catch up. */
     private fun waitFor(matcher: SemanticsMatcher) {
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntilSettled {
             composeRule.onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty()
         }
     }
