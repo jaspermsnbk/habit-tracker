@@ -69,7 +69,7 @@ for every past day.
 **Reproduced.** A pet born 10 days ago, with a habit it always did ("Read") and a habit it never did ("Run"):
 
 - Before: alive, health 100, 11 fed days, streak 11.
-- After deleting "Read": **dead, health 0, fed days 0, died on day 5**.
+- After deleting "Read": **dead, health 0, fed days 0, having died after four missed days (2026-10-05)**.
 - The reverse also holds: one habit that was never done kills the pet; deleting that habit makes it alive at full health.
 
 So the pet's life depends on today's habit list, not on what happened. Anyone who tidies their list can kill their pet, and
@@ -166,13 +166,14 @@ two date sets per habit, `atZone` for each entry, streaks) is the combine's tran
 - **It runs on the main thread. Reproduced:** with the collector on `Dispatchers.Main`, the transform reported running on the main looper.
   There is no `flowOn`, and a flow's operators run in the collector's context.
 - **It runs again for every collector.** Cold flows are not shared. On the Habits tab there are three live copies (the view model,
-  the widget updater and the gem awarder, which goes through `pet`, which contains `habits`). On Profile or Pet there are four to five.
-  A Glance widget session adds another while it is alive.
-- **It does the same work more than once per change.** In an instrumented load of one unchanged data set, the transform ran **3 times**
-  because Room re-emits and `combine` recomputes for each source. Room lists are not de-duplicated.
+  the widget updater and the gem awarder, which goes through `pet`, which contains `habits`). On Profile there are four (the view model's
+  `habits` for the trends, its `pet`, and the same two app-wide ones). A Glance widget session adds another while it is alive.
+- **It does the same work more than once per change.** In an instrumented load of one unchanged data set, the transform ran **3 times**.
+  The likely cause is that the sources deliver their first values at different moments and Room can emit again after it registers for
+  invalidation; `combine` recomputes each time and Room lists are not de-duplicated.
 - **Cost, measured.** With 20 habits and about three years of history (17,520 check-ins): reading the table alone takes 7.4 ms on Room's
   thread; the full pipeline takes 10.3 ms, so roughly 3 ms of mapping per pass; and one pass allocates **about 3.7 MB** on the
-  collecting thread. Times three to five copies, one tap on a habit means roughly 11 to 18 MB of short-lived garbage and 10 to 15 ms of
+  collecting thread. Times three to five copies, one tap on a habit means roughly 11 to 18 MB of short-lived garbage (3.7 MB × 3 to 5) and 10 to 15 ms of
   main-thread work on a desktop CPU, with a phone likely several times that. With 2,920 check-ins it is 4 ms in total, so the
   problem grows with the years a person keeps using the app.
 - **`SELECT * FROM habit_entries` with no `WHERE`.** Every change re-reads every row ever written.
@@ -222,8 +223,8 @@ binary search or prefix sums; run in a `produceState`/view model on `Dispatchers
 | Release, R8 on (temporary change, reverted) | **3.84 MB**, one 3.0 MB `classes.dex` |
 
 The cause is `material-icons-extended`, which contains thousands of icon classes and is only trimmed by R8. The cost is paid by every user:
-download and install size, larger dex to load and verify, and slower cold starts. R8 built cleanly with no extra rules; it still needs a
-real run on a device (Room, Glance and reflection are the usual suspects) before shipping.
+download and install size, larger dex to load and verify, and slower cold starts. R8 built cleanly with no extra rules, but a clean build is not a working app: it still needs a real run on a device (Room, Glance and
+anything reflective are the usual suspects) before shipping. R8 also obfuscates, which will matter once gems have a price.
 
 **Fix.** Turn optimisation and resource shrinking on for release, add a signing config and a `proguard-rules.pro`, and test the release build on a
 device. Also consider a baseline profile (see P9). The single use of `material-icons-extended` could also be replaced with a few vector assets.
@@ -239,14 +240,14 @@ Both animations ignore the system "remove animations" setting.
 
 **Fix.** Read the animated values inside the draw lambda (`drawBehind` or `Canvas { wave.value }`) so only the draw phase runs. Run the
 `z` transition only while `mood == Sleep`. Cache `PetGeometry`, palette and reusable `Path`s with `remember(look)`. Skip the animations
-when `ValueAnimator.areAnimatorsEnabled()` is false. Screens that show an animated pet are Pet, How it works (twice), Landing and Admin.
+when `ValueAnimator.areAnimatorsEnabled()` is false. The screens that animate a pet are Pet, How it works, Landing and the Admin preview.
 
 ### P5 (Medium). Lifecycle-unaware collection and permanent background collectors
 
 - **28 `collectAsState()` and no `collectAsStateWithLifecycle()`.** A stopped activity keeps its subscriptions, so the pipelines in P1 keep
   running for UI nobody can see. `WhileSubscribed(5_000)` never gets to stop them. Add `lifecycle-runtime-compose`.
 - **`HabitApplication` runs three never-ending collectors:** the gem awarder, the reminder re-armer, and a widget updater that collects all of
-  `habits`. Each one holds Room observers (about 20 live observers in a normal session) and, through `todayFlow`, a coroutine that wakes
+  `habits`. Each one holds Room observers (roughly 12 Room observers on the Habits tab and 21 on Profile) and, through `todayFlow`, a coroutine that wakes
   every 60 seconds for as long as the process lives.
 - **No error handling in those collectors.** They run on `Dispatchers.Main.immediate` with a `SupervisorJob` and no
   `CoroutineExceptionHandler`, so one exception (a database error while awarding gems, say) crashes the whole app in the background.
@@ -330,7 +331,7 @@ would have caught the main-thread disk reads.
 ### B7. Backup and privacy
 
 `allowBackup="true"` with the template's empty `backup_rules.xml` and `data_extraction_rules.xml`. Auto Backup therefore copies the whole
-database and preferences, now including the gem ledger and owned items, and a backed-up SQLite file in WAL mode can restore inconsistent.
+database and preferences, now including the gem ledger and owned items, and backing up a live SQLite file in WAL mode has a known risk of restoring inconsistently unless the log is checkpointed first.
 Decide what to back up, and what a restore means for gems before they can be bought. On the positive side the app declares no `INTERNET`
 permission, so nothing can leave the phone.
 
