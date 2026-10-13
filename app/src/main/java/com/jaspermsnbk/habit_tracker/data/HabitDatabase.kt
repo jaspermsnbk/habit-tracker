@@ -9,8 +9,14 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [HabitEntity::class, HabitEntryEntity::class, LabelEntity::class],
-    version = 3,
+    entities = [
+        HabitEntity::class,
+        HabitEntryEntity::class,
+        LabelEntity::class,
+        PetEntity::class,
+        PetForgivenDayEntity::class,
+    ],
+    version = 4,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -29,7 +35,7 @@ abstract class HabitDatabase : RoomDatabase() {
                     context.applicationContext,
                     HabitDatabase::class.java,
                     "habits.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
             }
     }
 }
@@ -54,5 +60,19 @@ internal val MIGRATION_1_2 = object : Migration(1, 2) {
 internal val MIGRATION_2_3 = object : Migration(2, 3) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE `habits` ADD COLUMN `emoji` TEXT")
+    }
+}
+
+/** v4 adds the pet and the missed days its owner forgave. */
+internal val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `pet` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, " +
+                "`bornOn` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+        )
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `pet_forgiven_days` (`date` INTEGER NOT NULL, " +
+                "`forgivenOn` INTEGER NOT NULL, PRIMARY KEY(`date`))"
+        )
     }
 }

@@ -10,6 +10,7 @@ import com.jaspermsnbk.habit_tracker.data.AppPreferences
 import com.jaspermsnbk.habit_tracker.data.HabitRepository
 import com.jaspermsnbk.habit_tracker.data.HabitUi
 import com.jaspermsnbk.habit_tracker.data.LabelUi
+import com.jaspermsnbk.habit_tracker.data.PetUi
 import com.jaspermsnbk.habit_tracker.data.PreferencesStore
 import com.jaspermsnbk.habit_tracker.data.ThemeMode
 import kotlinx.coroutines.flow.SharingStarted
@@ -41,6 +42,20 @@ class HabitViewModel(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyList(),
         )
+
+    /** The pet, or null before one is adopted. */
+    val pet: StateFlow<PetUi?> =
+        repository.pet.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
+        )
+
+    fun adoptPet(name: String) = viewModelScope.launch { repository.adoptPet(name) }
+
+    fun renamePet(name: String) = viewModelScope.launch { repository.renamePet(name) }
+
+    fun forgivePet() = viewModelScope.launch { repository.forgivePet() }
 
     /** Settings choices. Already current when first read, so screens open with the saved values. */
     val preferences: StateFlow<AppPreferences> = preferencesStore.preferences

@@ -32,6 +32,7 @@ fun LabelNameDialog(
     onConfirm: (name: String) -> Unit,
     initialName: String = "",
     description: String? = null,
+    fieldLabel: String = "Label name",
 ) {
     var name by remember { mutableStateOf(initialName) }
     val trimmed = name.trim()
@@ -53,7 +54,7 @@ fun LabelNameDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Label name") },
+                    label = { Text(fieldLabel) },
                     singleLine = true,
                     isError = duplicate,
                     supportingText = if (duplicate) {

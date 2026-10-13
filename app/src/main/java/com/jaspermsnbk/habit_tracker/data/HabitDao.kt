@@ -68,4 +68,25 @@ interface HabitDao {
 
     @Query("DELETE FROM labels")
     suspend fun deleteAllLabels()
+
+    @Query("SELECT * FROM pet LIMIT 1")
+    fun observePet(): Flow<PetEntity?>
+
+    @Upsert
+    suspend fun upsertPet(pet: PetEntity)
+
+    @Query("UPDATE pet SET name = :name")
+    suspend fun renamePet(name: String)
+
+    @Query("SELECT * FROM pet_forgiven_days")
+    fun observeForgivenDays(): Flow<List<PetForgivenDayEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertForgivenDays(days: List<PetForgivenDayEntity>)
+
+    @Query("DELETE FROM pet_forgiven_days")
+    suspend fun deleteForgivenDays()
+
+    @Query("DELETE FROM pet")
+    suspend fun deletePet()
 }

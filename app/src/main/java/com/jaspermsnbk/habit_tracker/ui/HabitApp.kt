@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -24,6 +25,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 
 private enum class Tab(val label: String, val icon: ImageVector) {
     Habits("Habits", Icons.Filled.CheckCircle),
+    Pet("Pet", Icons.Filled.Pets),
     Calendar("Calendar", Icons.Filled.CalendarMonth),
     Trends("Trends", Icons.Filled.Insights),
 }
@@ -69,6 +71,7 @@ fun HabitApp(viewModel: HabitViewModel) {
         tabStates.SaveableStateProvider(tab.name) {
             when (tab) {
                 Tab.Habits -> HabitListScreen(viewModel, screenModifier, openSettings)
+                Tab.Pet -> PetScreen(viewModel, screenModifier, openSettings)
                 Tab.Calendar -> CalendarScreen(viewModel, screenModifier, openSettings)
                 Tab.Trends -> TrendsScreen(viewModel, screenModifier, openSettings)
             }

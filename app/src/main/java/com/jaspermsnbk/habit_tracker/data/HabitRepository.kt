@@ -2,6 +2,7 @@ package com.jaspermsnbk.habit_tracker.data
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.time.Instant
 import java.time.LocalDate
@@ -34,6 +35,13 @@ data class HabitUi(
 data class LabelUi(
     val id: String,
     val name: String,
+)
+
+/** The pet with its derived state. */
+data class PetUi(
+    val name: String,
+    val bornOn: LocalDate,
+    val state: PetState,
 )
 
 /**
@@ -72,6 +80,53 @@ class HabitRepository(private val dao: HabitDao) {
                 )
             }
         }
+
+    /** Live pet, or null before one is adopted. Its state is replayed from check-ins on every change. */
+    val pet: Flow<PetUi?> =
+        combine(habits, dao.observePet(), dao.observeForgivenDays()) { habits, pet, forgiven ->
+            pet?.let {
+                PetUi(
+                    name = it.name,
+                    bornOn = it.bornOn,
+                    state = petState(
+                        bornOn = it.bornOn,
+                        today = LocalDate.now(),
+                        habits = habits,
+                        forgiven = forgiven.mapTo(HashSet()) { day -> day.date },
+                        lastForgivenOn = forgiven.maxOfOrNull { day -> day.forgivenOn },
+                    ),
+                )
+            }
+        }
+
+    /** Starts a new pet as of today, replacing any existing one (which is how a dead pet is replaced). */
+    suspend fun adoptPet(name: String): Boolean {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return false
+        dao.deleteForgivenDays()
+        dao.upsertPet(PetEntity(name = trimmed, bornOn = LocalDate.now()))
+        return true
+    }
+
+    suspend fun renamePet(name: String): Boolean {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return false
+        dao.renamePet(trimmed)
+        return true
+    }
+
+    /**
+     * Forgives the missed days the pet's owner is being offered forgiveness for, which revives a
+     * pet that died in that gap.
+     * @return whether anything was forgiven
+     */
+    suspend fun forgivePet(): Boolean {
+        val days = pet.first()?.state?.forgivableDays.orEmpty()
+        if (days.isEmpty()) return false
+        val today = LocalDate.now()
+        dao.insertForgivenDays(days.map { PetForgivenDayEntity(date = it, forgivenOn = today) })
+        return true
+    }
 
     suspend fun addHabit(name: String, color: String, labelId: String? = null, emoji: String? = null) {
         val now = Instant.now()
@@ -167,6 +222,8 @@ class HabitRepository(private val dao: HabitDao) {
         dao.deleteAllEntries()
         dao.deleteAllHabits()
         dao.deleteAllLabels()
+        dao.deleteForgivenDays()
+        dao.deletePet()
     }
 }
 

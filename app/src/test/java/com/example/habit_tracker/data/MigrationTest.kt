@@ -37,7 +37,7 @@ class MigrationTest {
 
         // Opening runs the migrations, and Room then validates the result against the current entities.
         val db = Room.databaseBuilder(context, HabitDatabase::class.java, DB_NAME)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .allowMainThreadQueries()
             .build()
         try {
@@ -68,7 +68,7 @@ class MigrationTest {
 
         // Opening runs the migration, and Room then validates the result against the v3 entities.
         val db = Room.databaseBuilder(context, HabitDatabase::class.java, DB_NAME)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .allowMainThreadQueries()
             .build()
         try {

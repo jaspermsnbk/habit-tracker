@@ -72,3 +72,22 @@ data class LabelEntity(
     val name: String,
     val createdAt: Instant,
 )
+
+/** The user's pet. There is at most one row; its state is derived from check-ins since [bornOn]. */
+@Entity(tableName = "pet")
+data class PetEntity(
+    @PrimaryKey val id: String = PET_ID,
+    val name: String,
+    val bornOn: LocalDate,
+) {
+    companion object {
+        const val PET_ID = "pet"
+    }
+}
+
+/** A missed day the user forgave, and the day they did it (for the forgiveness cooldown). */
+@Entity(tableName = "pet_forgiven_days")
+data class PetForgivenDayEntity(
+    @PrimaryKey val date: LocalDate,
+    val forgivenOn: LocalDate,
+)
