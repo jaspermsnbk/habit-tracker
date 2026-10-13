@@ -1,6 +1,6 @@
 # 10. Shop and gems
 
-**Goal:** a Shop tab where gems, earned by keeping long streaks, buy outfits and other cosmetics for the pet.
+**Goal:** a Shop, opened as a pop-up from the Profile tab, where gems, earned by keeping long streaks, buy outfits and other cosmetics for the pet.
 Built so a future "buy gems" in-app purchase drops in without reworking anything.
 
 This replaces the automatic outfit choice in plan 3 and takes over the owned and equipped tables planned in plan 7.
