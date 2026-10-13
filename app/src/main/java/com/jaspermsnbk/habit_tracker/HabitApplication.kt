@@ -1,12 +1,14 @@
 package com.jaspermsnbk.habit_tracker
 
 import android.app.Application
+import androidx.glance.appwidget.updateAll
 import com.jaspermsnbk.habit_tracker.data.HabitDatabase
 import com.jaspermsnbk.habit_tracker.data.HabitRepository
 import com.jaspermsnbk.habit_tracker.data.PreferencesStore
 import com.jaspermsnbk.habit_tracker.data.SessionStore
 import com.jaspermsnbk.habit_tracker.notifications.ReminderNotifier
 import com.jaspermsnbk.habit_tracker.notifications.ReminderScheduler
+import com.jaspermsnbk.habit_tracker.widget.HabitWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -45,6 +47,15 @@ class HabitApplication : Application() {
                 .collect { (enabled, time) ->
                     if (enabled) reminderScheduler.schedule(time) else reminderScheduler.cancel()
                 }
+        }
+
+        // Keeps the home screen widget in sync whenever habits change from inside the app. Room
+        // re-emits on any write to the tables it watches, so identical lists are dropped rather
+        // than costing a redraw.
+        appScope.launch {
+            repository.habits
+                .distinctUntilChanged()
+                .collect { HabitWidget.updateAll(this@HabitApplication) }
         }
     }
 }

@@ -26,6 +26,18 @@
             </intent-filter>
         </activity>
 
+        <!-- Asks which label a widget shows. Launched by the launcher when the widget is placed
+             and whenever it is reconfigured, so it has to be exported. -->
+        <activity
+            android:name=".widget.HabitWidgetConfigActivity"
+            android:exported="true"
+            android:label="@string/habit_widget_label"
+            android:theme="@style/Theme.Habittracker2">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <!-- Fired by the reminder alarm (an explicit intent), and by the system events that clear or
              shift alarms. System broadcasts reach it even though it isn't exported. -->
         <receiver
@@ -37,6 +49,24 @@
                 <action android:name="android.intent.action.TIME_SET" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
+        </receiver>
+
+        <!-- Home screen widget: lists today's habits and lets them be checked off directly. -->
+        <receiver
+            android:name=".widget.HabitWidgetReceiver"
+            android:exported="false"
+            android:label="@string/habit_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <!-- "Done today" goes stale when the day, clock or timezone moves under it. -->
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/habit_widget_info" />
         </receiver>
     </application>
 
